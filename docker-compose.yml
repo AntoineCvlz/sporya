@@ -33,9 +33,58 @@ services:
     networks:
       - sporya-net
 
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.15.0
+    container_name: sporya-postgres-exporter
+    restart: unless-stopped
+    environment:
+      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER:-sporya}:${POSTGRES_PASSWORD:-sporya}@postgres:5432/${POSTGRES_DB:-sporya}?sslmode=disable"
+    ports:
+      - "${POSTGRES_EXPORTER_PORT:-9187}:9187"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - sporya-net
+
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    container_name: sporya-prometheus
+    restart: unless-stopped
+    volumes:
+      - ./infrastructure/monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - sporya-prometheus-data:/prometheus
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    depends_on:
+      - postgres-exporter
+    networks:
+      - sporya-net
+
+  grafana:
+    image: grafana/grafana:11.3.1
+    container_name: sporya-grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+    volumes:
+      - ./infrastructure/monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./infrastructure/monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - sporya-grafana-data:/var/lib/grafana
+    ports:
+      - "${GRAFANA_PORT:-3001}:3000"
+    depends_on:
+      - prometheus
+    networks:
+      - sporya-net
+
 networks:
   sporya-net:
     name: sporya-net
 
 volumes:
   sporya-postgres-data:
+  sporya-prometheus-data:
+  sporya-grafana-data:

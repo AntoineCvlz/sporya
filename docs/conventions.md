@@ -56,6 +56,15 @@ Build tool : **Maven** (via wrapper), fixé pour tous les services Java — la p
 
 Écarts à cette structure : possibles si justifiés par le domaine du service, mais à documenter dans le `README.md` du service concerné plutôt qu'à faire silencieusement.
 
+## Observabilité
+
+À appliquer par tout service dès sa construction (voir [ADR-009](adr/ADR-009-observabilite.md)) :
+
+- Logs en JSON structuré (pas de texte libre), via Logback côté Spring Boot.
+- Chaque requête entrante porte/génère un `Correlation-Id` (en-tête HTTP `X-Correlation-Id`, propagé aux appels sortants, présent dans le MDC du logger sous la clé `correlationId`).
+- `/actuator/health` et `/actuator/prometheus` exposés dès le premier déploiement du service.
+- Un `job_name` ajouté dans `infrastructure/monitoring/prometheus/prometheus.yml` au moment où le service est déployé.
+
 ## Principes de développement
 
 Rappel des règles qui s'appliquent à tout le projet (détail dans `docs/architecture/overview.md`) :

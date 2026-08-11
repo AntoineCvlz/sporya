@@ -1,0 +1,19 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  - job_name: postgres
+    static_configs:
+      - targets: ["postgres-exporter:9187"]
+
+  # Services applicatifs — un job ajouté au moment où le service est construit
+  # et expose /actuator/prometheus (voir ADR-009). Exemple pour Auth Service :
+  # - job_name: auth-service
+  #   metrics_path: /actuator/prometheus
+  #   static_configs:
+  #     - targets: ["auth-service:8080"]

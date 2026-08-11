@@ -2,7 +2,7 @@
 
 **Plateforme d'analyse et de suivi des performances sportives — football (MVP), conçue pour évoluer vers le multi-sport.**
 
-> Statut actuel : **Phase 2 — Docker**. Aucun service métier n'est encore développé. Voir la [roadmap](docs/architecture/overview.md#roadmap-résumée) pour la suite.
+> Statut actuel : **Phase 4 — Observabilité**. Aucun service métier n'est encore développé. Voir la [roadmap](docs/architecture/overview.md#roadmap-résumée) pour la suite.
 
 ---
 
@@ -47,7 +47,16 @@ cp .env.example .env
 docker compose up -d
 ```
 
-Démarre pour l'instant PostgreSQL (`localhost:5432`) et Adminer (`http://localhost:8081`) — aucun service applicatif encore construit (voir la roadmap). `docker compose down -v` supprime aussi les données persistées.
+Démarre le socle local — aucun service applicatif encore construit (voir la roadmap) :
+
+| Outil | URL locale | Identifiants |
+|---|---|---|
+| PostgreSQL | `localhost:5432` | `sporya` / `sporya` |
+| Adminer | http://localhost:8081 | serveur `postgres`, `sporya` / `sporya` |
+| Prometheus | http://localhost:9090 | — |
+| Grafana | http://localhost:3001 | `admin` / `admin` (à changer via `.env`) |
+
+`docker compose down -v` supprime aussi les données persistées.
 
 ## Documentation
 

@@ -1,0 +1,55 @@
+{
+  "title": "Sporya — Platform Overview",
+  "uid": "sporya-platform-overview",
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": true,
+  "timezone": "browser",
+  "refresh": "30s",
+  "time": { "from": "now-6h", "to": "now" },
+  "tags": ["sporya", "infrastructure"],
+  "panels": [
+    {
+      "id": 1,
+      "title": "PostgreSQL",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 6, "x": 0, "y": 0 },
+      "targets": [{ "expr": "pg_up", "refId": "A" }],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "type": "value", "options": { "0": { "text": "DOWN", "color": "red" }, "1": { "text": "UP", "color": "green" } } }
+          ]
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 2,
+      "title": "Cibles Prometheus UP",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 6, "x": 6, "y": 0 },
+      "targets": [{ "expr": "count(up == 1)", "refId": "A" }]
+    },
+    {
+      "id": 3,
+      "title": "Cibles Prometheus (total)",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 6, "x": 12, "y": 0 },
+      "targets": [{ "expr": "count(up)", "refId": "A" }]
+    },
+    {
+      "id": 4,
+      "title": "Connexions actives PostgreSQL (db sporya)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 8 },
+      "targets": [
+        { "expr": "sum(pg_stat_database_numbackends{datname=\"sporya\"})", "refId": "A", "legendFormat": "connexions" }
+      ]
+    }
+  ]
+}
