@@ -47,9 +47,12 @@ Chaque service sous `services/<nom>-service/` suit la même structure interne, �
 ├── src/main/java/.../{controller,application,domain,infrastructure}/
 ├── src/test/java/...
 ├── Dockerfile
-├── pom.xml (ou build.gradle)
+├── mvnw, mvnw.cmd, .mvn/       (Maven Wrapper — requis, utilisé tel quel par service-ci.yml)
+├── pom.xml
 └── README.md   (spécifique au service : responsabilité, API, comment le lancer seul)
 ```
+
+Build tool : **Maven** (via wrapper), fixé pour tous les services Java — la pipeline CI réutilisable (`service-ci.yml`) suppose `./mvnw` et un plugin Spotless configuré (`spotless:check`).
 
 Écarts à cette structure : possibles si justifiés par le domaine du service, mais à documenter dans le `README.md` du service concerné plutôt qu'à faire silencieusement.
 
