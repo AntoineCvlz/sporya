@@ -2,7 +2,7 @@
 
 **Plateforme d'analyse et de suivi des performances sportives — football (MVP), conçue pour évoluer vers le multi-sport.**
 
-> Statut actuel : **Phase 1 — Repository**. Aucun service métier n'est encore développé. Voir la [roadmap](docs/architecture/overview.md#roadmap-résumée) pour la suite.
+> Statut actuel : **Phase 2 — Docker**. Aucun service métier n'est encore développé. Voir la [roadmap](docs/architecture/overview.md#roadmap-résumée) pour la suite.
 
 ---
 
@@ -42,7 +42,12 @@ Sporya/
 
 ## Démarrer en local
 
-Pas encore disponible — la Phase 2 (Docker) mettra en place `docker compose up` comme point d'entrée unique pour l'environnement de développement. Ce README sera mis à jour à ce moment-là.
+```bash
+cp .env.example .env
+docker compose up -d
+```
+
+Démarre pour l'instant PostgreSQL (`localhost:5432`) et Adminer (`http://localhost:8081`) — aucun service applicatif encore construit (voir la roadmap). `docker compose down -v` supprime aussi les données persistées.
 
 ## Documentation
 

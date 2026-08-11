@@ -1,0 +1,41 @@
+name: sporya
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: sporya-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-sporya}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sporya}
+      POSTGRES_DB: ${POSTGRES_DB:-sporya}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - sporya-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-sporya} -d ${POSTGRES_DB:-sporya}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - sporya-net
+
+  adminer:
+    image: adminer:latest
+    container_name: sporya-adminer
+    restart: unless-stopped
+    ports:
+      - "${ADMINER_PORT:-8081}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - sporya-net
+
+networks:
+  sporya-net:
+    name: sporya-net
+
+volumes:
+  sporya-postgres-data:
