@@ -16,9 +16,10 @@ jobs:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
-      - uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: gitleaks
+        uses: docker://zricethezav/gitleaks:v8.21.2
+        with:
+          args: detect --source /github/workspace -v --redact
 
   lint-workflows:
     name: Lint GitHub Actions workflows
