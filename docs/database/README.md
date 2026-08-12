@@ -47,4 +47,6 @@ erDiagram
 
 ## Migrations
 
-Convention à établir à la Phase 6 (premier service) : Flyway, une migration versionnée par changement de schéma, un dossier de migrations par service (`services/<nom>-service/src/main/resources/db/migration/`).
+Flyway, une migration versionnée par changement de schéma, un dossier de migrations par service (`services/<nom>-service/src/main/resources/db/migration/`). Le schéma lui-même est créé automatiquement par Flyway au démarrage (`spring.flyway.create-schemas: true`), pas besoin de script d'initialisation manuel côté Postgres.
+
+Auth Service (squelette Phase 6) n'a pas encore de migration : aucune entité pour l'instant, seul le schéma `auth` (vide) est créé au démarrage. La première migration (`V1__create_users_table.sql` ou équivalent) arrive avec l'entité `User`.

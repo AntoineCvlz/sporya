@@ -1,0 +1,32 @@
+# Ingress par service, fusionnés par Traefik sur le même host (routage par
+# chemin — voir infrastructure/kubernetes/README.md). Un fichier par service
+# ajouté au fur et à mesure, pas un unique Ingress monolithique.
+#
+# letsencrypt-staging pendant la validation initiale (certificats non
+# fiables, pas de rate limit) — basculer sur letsencrypt-prod une fois
+# l'émission vérifiée (voir ADR-015), en changeant uniquement l'annotation
+# ci-dessous et le nom du Secret TLS.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: auth-service
+  namespace: sporya
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-staging
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - sporya.antoine-cuvilliez.fr
+      secretName: sporya-tls-staging
+  rules:
+    - host: sporya.antoine-cuvilliez.fr
+      http:
+        paths:
+          - path: /api/auth
+            pathType: Prefix
+            backend:
+              service:
+                name: auth-service
+                port:
+                  number: 8080

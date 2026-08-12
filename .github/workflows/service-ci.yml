@@ -20,6 +20,9 @@ jobs:
   build-and-test:
     name: Build & test (${{ inputs.service_path }})
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     defaults:
       run:
         working-directory: ${{ inputs.service_path }}
@@ -48,15 +51,33 @@ jobs:
 
       - name: Resolve image name
         id: meta
-        run: echo "name=$(basename ${{ inputs.service_path }})" >> "$GITHUB_OUTPUT"
+        run: |
+          name=$(basename ${{ inputs.service_path }})
+          owner=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]') # ghcr.io exige un nom en minuscules
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+          echo "image=ghcr.io/$owner/$name:${{ github.sha }}" >> "$GITHUB_OUTPUT"
 
       - name: Build Docker image
         # cwd = inputs.service_path (via defaults.run.working-directory) -> le contexte est "."
-        run: docker build -t sporya/${{ steps.meta.outputs.name }}:${{ github.sha }} .
+        run: docker build -t ${{ steps.meta.outputs.image }} .
 
       - name: Scan image (Trivy)
         uses: aquasecurity/trivy-action@0.24.0
         with:
-          image-ref: sporya/${{ steps.meta.outputs.name }}:${{ github.sha }}
+          image-ref: ${{ steps.meta.outputs.image }}
           severity: CRITICAL,HIGH
           exit-code: "1"
+
+      - name: Log in to GHCR
+        # Uniquement au push sur main — voir ADR-016. Les PR construisent et
+        # scannent l'image sans la publier.
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push image
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: docker push ${{ steps.meta.outputs.image }}

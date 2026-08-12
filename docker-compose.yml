@@ -47,6 +47,25 @@ services:
     networks:
       - sporya-net
 
+  auth-service:
+    build:
+      context: ./services/auth-service
+    container_name: sporya-auth-service
+    restart: unless-stopped
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${POSTGRES_DB:-sporya}
+      DB_USER: ${POSTGRES_USER:-sporya}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-sporya}
+    ports:
+      - "${AUTH_SERVICE_PORT:-8080}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - sporya-net
+
   prometheus:
     image: prom/prometheus:v2.55.1
     container_name: sporya-prometheus

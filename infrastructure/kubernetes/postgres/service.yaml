@@ -1,0 +1,16 @@
+# Service headless (clusterIP: None) — requis pour le champ serviceName du
+# StatefulSet. Résolvable par les autres pods du namespace via le nom
+# "postgres".
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: sporya
+spec:
+  clusterIP: None
+  selector:
+    app.kubernetes.io/name: postgres
+  ports:
+    - port: 5432
+      targetPort: 5432
+      name: postgres

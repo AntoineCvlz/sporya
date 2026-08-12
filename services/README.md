@@ -2,7 +2,7 @@
 
 Ce dossier se remplit **au fil de la construction réelle** des microservices, un à la fois — voir [ADR-003](../docs/adr/ADR-003-microservices-des-le-mvp.md) et l'[ordre de construction](../docs/architecture/overview.md#ordre-de-construction-des-microservices).
 
-Aucun service n'est encore construit (Phase 1 — Repository). Le premier sera `auth-service/` (Phase 6), qui sert de gabarit pour les suivants ([ADR-004](../docs/adr/ADR-004-service-de-reference.md)).
+`auth-service/` (Phase 6) est le premier service construit, gabarit pour les suivants ([ADR-004](../docs/adr/ADR-004-service-de-reference.md)) — squelette minimal pour l'instant (pas encore de logique métier), voir son [README](auth-service/README.md).
 
 Ordre prévu :
 

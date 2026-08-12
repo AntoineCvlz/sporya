@@ -12,8 +12,8 @@ scrape_configs:
       - targets: ["postgres-exporter:9187"]
 
   # Services applicatifs — un job ajouté au moment où le service est construit
-  # et expose /actuator/prometheus (voir ADR-009). Exemple pour Auth Service :
-  # - job_name: auth-service
-  #   metrics_path: /actuator/prometheus
-  #   static_configs:
-  #     - targets: ["auth-service:8080"]
+  # et expose /actuator/prometheus (voir ADR-009).
+  - job_name: auth-service
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["auth-service:8080"]
