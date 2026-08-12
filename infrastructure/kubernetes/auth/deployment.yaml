@@ -1,7 +1,8 @@
 # Auth Service — gabarit pour les déploiements suivants (voir ADR-004).
 # L'image est buildée/publiée par service-ci.yml sur ghcr.io (ADR-016),
-# taguée avec le SHA du commit — remplacer <SHA> par le tag réellement
-# publié avant `kubectl apply` (voir docs/deployment/README.md).
+# taguée avec le SHA du commit qui a déclenché le run CI — mettre à jour le
+# tag ci-dessous à chaque nouveau déploiement manuel (voir docs/deployment/README.md).
+# Premier déploiement : commit 8f8b921673f271ea954a3c8e47065267ab754596.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -19,7 +20,7 @@ spec:
     spec:
       containers:
         - name: auth-service
-          image: ghcr.io/antoinecvlz/auth-service:<SHA>
+          image: ghcr.io/antoinecvlz/auth-service:8f8b921673f271ea954a3c8e47065267ab754596
           ports:
             - containerPort: 8080
           env:
