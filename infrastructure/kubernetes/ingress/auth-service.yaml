@@ -13,6 +13,8 @@ metadata:
   namespace: sporya
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-staging
+    # Retire /api/auth avant transmission au pod — voir middleware-strip-auth-prefix.yaml
+    traefik.ingress.kubernetes.io/router.middlewares: sporya-strip-auth-prefix@kubernetescrd
 spec:
   ingressClassName: traefik
   tls:
