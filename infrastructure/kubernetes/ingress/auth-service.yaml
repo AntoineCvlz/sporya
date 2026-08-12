@@ -2,17 +2,15 @@
 # chemin — voir infrastructure/kubernetes/README.md). Un fichier par service
 # ajouté au fur et à mesure, pas un unique Ingress monolithique.
 #
-# letsencrypt-staging pendant la validation initiale (certificats non
-# fiables, pas de rate limit) — basculer sur letsencrypt-prod une fois
-# l'émission vérifiée (voir ADR-015), en changeant uniquement l'annotation
-# ci-dessous et le nom du Secret TLS.
+# letsencrypt-prod — validé d'abord en letsencrypt-staging (voir ADR-015),
+# émission HTTP-01 confirmée sur ce host le 12/08/2026.
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: auth-service
   namespace: sporya
   annotations:
-    cert-manager.io/cluster-issuer: letsencrypt-staging
+    cert-manager.io/cluster-issuer: letsencrypt-prod
     # Retire /api/auth avant transmission au pod — voir middleware-strip-auth-prefix.yaml
     traefik.ingress.kubernetes.io/router.middlewares: sporya-strip-auth-prefix@kubernetescrd
 spec:
@@ -20,7 +18,7 @@ spec:
   tls:
     - hosts:
         - sporya.antoine-cuvilliez.fr
-      secretName: sporya-tls-staging
+      secretName: sporya-tls-prod
   rules:
     - host: sporya.antoine-cuvilliez.fr
       http:
