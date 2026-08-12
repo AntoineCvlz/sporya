@@ -33,8 +33,7 @@ class JwtAuthenticationFilter extends OncePerRequestFilter {
       try {
         Claims claims = jwtService.parseAndValidate(header.substring("Bearer ".length()));
         UUID userId = UUID.fromString(claims.getSubject());
-        var authentication =
-            new UsernamePasswordAuthenticationToken(userId, null, List.of());
+        var authentication = new UsernamePasswordAuthenticationToken(userId, null, List.of());
         SecurityContextHolder.getContext().setAuthentication(authentication);
       } catch (JwtException | IllegalArgumentException ignored) {
         // Token absent/invalide/expiré -> requête traitée comme anonyme, rejetée plus loin

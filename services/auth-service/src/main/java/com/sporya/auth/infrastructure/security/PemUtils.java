@@ -10,8 +10,8 @@ import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
 
 /**
- * Décode une clé RSA fournie en variable d'environnement comme un PEM encodé en base64 (le
- * wrapping base64 évite les soucis de sauts de ligne dans les fichiers .env / Secrets K8s).
+ * Décode une clé RSA fournie en variable d'environnement comme un PEM encodé en base64 (le wrapping
+ * base64 évite les soucis de sauts de ligne dans les fichiers .env / Secrets K8s).
  */
 final class PemUtils {
 

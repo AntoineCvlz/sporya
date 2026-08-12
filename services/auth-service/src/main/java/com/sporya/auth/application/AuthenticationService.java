@@ -41,9 +41,7 @@ public class AuthenticationService {
   @Transactional(readOnly = true)
   public AuthResponse login(LoginRequest request) {
     User user =
-        userRepository
-            .findByEmail(request.email())
-            .orElseThrow(InvalidCredentialsException::new);
+        userRepository.findByEmail(request.email()).orElseThrow(InvalidCredentialsException::new);
     if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
       throw new InvalidCredentialsException();
     }
@@ -53,7 +51,8 @@ public class AuthenticationService {
 
   @Transactional(readOnly = true)
   public UserResponse currentUser(UUID userId) {
-    User user = userRepository.findById(userId).orElseThrow(() -> new UserNotFoundException(userId));
+    User user =
+        userRepository.findById(userId).orElseThrow(() -> new UserNotFoundException(userId));
     return UserResponse.from(user);
   }
 }
