@@ -1,5 +1,10 @@
 server:
   port: 8080
+  tomcat:
+    threads:
+      # Défaut Tomcat = 200 — largement surdimensionné pour ce service à faible
+      # trafic, et chaque thread réserve de la pile mémoire même inactif.
+      max: 20
 
 spring:
   application:

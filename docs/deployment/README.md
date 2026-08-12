@@ -45,6 +45,17 @@ Déploiement **manuel** (le CD automatisé arrive Phase 7). Registre : `ghcr.io`
 
 Premier déploiement (squelette minimal) validé le 12/08/2026 : `200` avec certificat Let's Encrypt de production.
 
+## Dimensionnement mémoire
+
+Le VPS a **1.8 Gi de RAM au total** (pas d'upgrade prévu pour l'instant) — déjà partagés entre K3s (Traefik, cert-manager, coredns...), Postgres et les services applicatifs. Le 12/08/2026, un rolling deploy a fait tourner brièvement deux JVM Auth Service en même temps sous un système déjà en tension (aucun bug applicatif — démarrage normal, juste ~37s au lieu de quelques secondes), ce qui a fait basculer le VPS en situation de swap thrashing (load average 40+, SSH quasi inutilisable). Un swapfile de 2 Gi a été ajouté comme filet de sécurité (`/swapfile`, persistant via `/etc/fstab`), mais la vraie marge de manœuvre vient de contraindre chaque JVM explicitement plutôt que de laisser les heuristiques par défaut décider :
+
+- **`JAVA_TOOL_OPTIONS`** fixé dans le `Dockerfile` de chaque service Java : `-Xms192m -Xmx192m -XX:MaxMetaspaceSize=96m -XX:MaxDirectMemorySize=32m -XX:ReservedCodeCacheSize=48m -XX:+UseSerialGC` (SerialGC : moins d'overhead mémoire que G1 pour un petit tas mono-instance à faible trafic).
+- **`server.tomcat.threads.max: 20`** dans `application.yml` (défaut Tomcat = 200, chaque thread réserve de la pile même inactif).
+- **Ressources K8s réduites en conséquence** (`auth/deployment.yaml`) : `requests: 300Mi` / `limits: 400Mi` (avant : 384/512Mi), avec marge au-dessus du plafond JVM (~368Mi) pour l'overhead natif du process.
+- **Probes plus tolérantes** (`initialDelaySeconds`/`failureThreshold` généreux) pour qu'un démarrage lent sous pression CPU ne déclenche pas un cycle kill-restart qui aggrave la situation, comme observé le 12/08/2026.
+
+Chaque nouveau service Java copie ce gabarit (voir [ADR-004](../adr/ADR-004-service-de-reference.md)). Avant d'ajouter Club/Match Service, revérifier `free -h` sur le VPS.
+
 ## CD (Phase 7)
 
 Pas encore en place — pipeline de déploiement automatisé, stratégie de rolling update et de rollback, à documenter à ce moment-là.

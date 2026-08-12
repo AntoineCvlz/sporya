@@ -16,5 +16,12 @@ USER spring:spring
 WORKDIR /app
 COPY --from=build /app/target/auth-service.jar app.jar
 
+# Footprint mémoire borné explicitement plutôt que laissé aux heuristiques du JVM
+# (MaxRAMPercentage) — le VPS de prod a peu de RAM à partager entre plusieurs
+# services (voir docs/deployment/README.md#dimensionnement-mémoire). SerialGC :
+# moins d'overhead mémoire que G1 pour un petit tas mono-instance à faible trafic.
+# Remplaçable au déploiement via la variable d'environnement JAVA_TOOL_OPTIONS.
+ENV JAVA_TOOL_OPTIONS="-Xms192m -Xmx192m -XX:MaxMetaspaceSize=96m -XX:MaxDirectMemorySize=32m -XX:ReservedCodeCacheSize=48m -XX:+UseSerialGC"
+
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "app.jar"]

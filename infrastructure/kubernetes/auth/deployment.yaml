@@ -58,18 +58,28 @@ spec:
             httpGet:
               path: /actuator/health/readiness
               port: 8080
-            initialDelaySeconds: 15
+            initialDelaySeconds: 30
             periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
           livenessProbe:
+            # Généreux exprès : un démarrage lent (VPS sous pression CPU) ne doit
+            # pas déclencher un kill-restart en boucle qui aggrave la situation
+            # (vécu le 12/08/2026 — 25 min avant stabilisation).
             httpGet:
               path: /actuator/health/liveness
               port: 8080
-            initialDelaySeconds: 30
+            initialDelaySeconds: 45
             periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 5
           resources:
+            # Plafond JVM explicite (Dockerfile) ~368Mi (heap+metaspace+direct+code
+            # cache) — marge au-dessus pour l'overhead natif du process et les
+            # threads. Voir docs/deployment/README.md#dimensionnement-mémoire.
             requests:
               cpu: 100m
-              memory: 384Mi
+              memory: 300Mi
             limits:
               cpu: 500m
-              memory: 512Mi
+              memory: 400Mi
