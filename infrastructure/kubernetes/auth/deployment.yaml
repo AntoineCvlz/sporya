@@ -43,6 +43,16 @@ spec:
                 secretKeyRef:
                   name: postgres-credentials
                   key: POSTGRES_PASSWORD
+            - name: JWT_PRIVATE_KEY_BASE64
+              valueFrom:
+                secretKeyRef:
+                  name: auth-service-jwt-keys
+                  key: JWT_PRIVATE_KEY_BASE64
+            - name: JWT_PUBLIC_KEY_BASE64
+              valueFrom:
+                secretKeyRef:
+                  name: auth-service-jwt-keys
+                  key: JWT_PUBLIC_KEY_BASE64
           readinessProbe:
             httpGet:
               path: /actuator/health/readiness

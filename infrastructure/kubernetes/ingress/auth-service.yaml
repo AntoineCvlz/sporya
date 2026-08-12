@@ -1,6 +1,10 @@
-# Ingress par service, fusionnés par Traefik sur le même host (routage par
-# chemin — voir infrastructure/kubernetes/README.md). Un fichier par service
-# ajouté au fur et à mesure, pas un unique Ingress monolithique.
+# Ingress par service, fusionnés par Traefik sur le même host — chaque
+# service route sur son propre préfixe d'API versionné (/api/v1/auth,
+# /api/v1/clubs, ...), donc pas besoin de Middleware de réécriture : le
+# chemin transmis au pod est déjà celui que le contrôleur attend.
+#
+# /actuator/* n'est volontairement PAS exposé ici (accès interne seulement,
+# pour les probes K8s et le scrape Prometheus) — voir docs/deployment/README.md.
 #
 # letsencrypt-prod — validé d'abord en letsencrypt-staging (voir ADR-015),
 # émission HTTP-01 confirmée sur ce host le 12/08/2026.
@@ -11,8 +15,6 @@ metadata:
   namespace: sporya
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-prod
-    # Retire /api/auth avant transmission au pod — voir middleware-strip-auth-prefix.yaml
-    traefik.ingress.kubernetes.io/router.middlewares: sporya-strip-auth-prefix@kubernetescrd
 spec:
   ingressClassName: traefik
   tls:
@@ -23,7 +25,7 @@ spec:
     - host: sporya.antoine-cuvilliez.fr
       http:
         paths:
-          - path: /api/auth
+          - path: /api/v1/auth
             pathType: Prefix
             backend:
               service:

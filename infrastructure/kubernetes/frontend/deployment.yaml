@@ -1,0 +1,43 @@
+# Frontend statique (React build servi par nginx). Image publiée par
+# frontend.yml sur ghcr.io (ADR-016), taguée avec le SHA du commit qui a
+# déclenché le run CI — mettre à jour le tag ci-dessous à chaque nouveau
+# déploiement manuel (voir docs/deployment/README.md).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: sporya
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: frontend
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: frontend
+    spec:
+      containers:
+        - name: frontend
+          image: ghcr.io/antoinecvlz/frontend:<SHA>
+          ports:
+            - containerPort: 80
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi

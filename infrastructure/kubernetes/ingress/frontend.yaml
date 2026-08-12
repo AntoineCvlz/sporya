@@ -1,0 +1,28 @@
+# Sert tout le reste du host (catch-all "/") — Traefik priorise
+# automatiquement les règles plus spécifiques (ex. /api/v1/auth) sur celle-ci,
+# peu importe l'ordre de déclaration entre Ingress. Partage le même Secret
+# TLS que les autres Ingress de ce host (déjà émis, réutilisé tel quel).
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: frontend
+  namespace: sporya
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - sporya.antoine-cuvilliez.fr
+      secretName: sporya-tls-prod
+  rules:
+    - host: sporya.antoine-cuvilliez.fr
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80

@@ -58,11 +58,25 @@ services:
       DB_NAME: ${POSTGRES_DB:-sporya}
       DB_USER: ${POSTGRES_USER:-sporya}
       DB_PASSWORD: ${POSTGRES_PASSWORD:-sporya}
+      JWT_PRIVATE_KEY_BASE64: ${JWT_PRIVATE_KEY_BASE64}
+      JWT_PUBLIC_KEY_BASE64: ${JWT_PUBLIC_KEY_BASE64}
     ports:
       - "${AUTH_SERVICE_PORT:-8080}:8080"
     depends_on:
       postgres:
         condition: service_healthy
+    networks:
+      - sporya-net
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: sporya-frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-5173}:80"
+    depends_on:
+      - auth-service
     networks:
       - sporya-net
 
