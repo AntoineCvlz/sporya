@@ -2,6 +2,7 @@
 # frontend.yml sur ghcr.io (ADR-016), taguée avec le SHA du commit qui a
 # déclenché le run CI — mettre à jour le tag ci-dessous à chaque nouveau
 # déploiement manuel (voir docs/deployment/README.md).
+# Premier déploiement : commit af07413e0c3ba56f254a9fd470f7c8d838f08bfb.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -19,7 +20,7 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: ghcr.io/antoinecvlz/frontend:<SHA>
+          image: ghcr.io/antoinecvlz/frontend:af07413e0c3ba56f254a9fd470f7c8d838f08bfb
           ports:
             - containerPort: 80
           readinessProbe:
