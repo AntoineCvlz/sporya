@@ -28,8 +28,11 @@ Déploiement **manuel** (le CD automatisé arrive Phase 7). Registre : `ghcr.io`
 2. **Postgres** : `kubectl apply -f infrastructure/kubernetes/postgres/`
 3. **Rendre le package GHCR public** (Settings du package sur GitHub) une fois la première image poussée — sinon K3s ne peut pas la tirer sans `imagePullSecret`.
 4. **Auth Service** : éditer le tag `<SHA>` dans [`infrastructure/kubernetes/auth/deployment.yaml`](../../infrastructure/kubernetes/auth/deployment.yaml) avec le SHA du commit publié, puis `kubectl apply -f infrastructure/kubernetes/auth/`
-5. **Ingress + TLS** : `kubectl apply -f infrastructure/kubernetes/ingress/auth-service.yaml` — `letsencrypt-staging` d'abord (voir [ADR-015](../adr/ADR-015-traefik-entree-directe.md)), vérifier `kubectl describe certificate -n sporya sporya-tls-staging`, puis basculer sur `letsencrypt-prod` une fois validé.
-6. **Vérifier** : `curl -I https://sporya.antoine-cuvilliez.fr/api/auth/actuator/health`
+5. **Middleware** (retire `/api/auth` avant transmission au pod) : `kubectl apply -f infrastructure/kubernetes/ingress/middleware-strip-auth-prefix.yaml`
+6. **Ingress + TLS** : `kubectl apply -f infrastructure/kubernetes/ingress/auth-service.yaml` — `letsencrypt-staging` d'abord (voir [ADR-015](../adr/ADR-015-traefik-entree-directe.md)), vérifier `kubectl describe certificate -n sporya sporya-tls-staging`, puis basculer sur `letsencrypt-prod` une fois validé (annotation `cert-manager.io/cluster-issuer` + `secretName`).
+7. **Vérifier** : `curl -I https://sporya.antoine-cuvilliez.fr/api/auth/actuator/health`
+
+Validé le 12/08/2026 : `200` avec certificat Let's Encrypt de production.
 
 ## CD (Phase 7)
 

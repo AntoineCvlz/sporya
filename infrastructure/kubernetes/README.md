@@ -26,8 +26,8 @@ Instance unique mutualisée (`postgres/statefulset.yaml` + PVC via `local-path`,
 
 ## Auth Service
 
-Premier service déployé (`auth/`), image publiée sur `ghcr.io` (voir [ADR-016](../../docs/adr/ADR-016-ghcr-registry.md)), exposé via [`ingress/auth-service.yaml`](ingress/auth-service.yaml) sur `sporya.antoine-cuvilliez.fr/api/auth`.
+Premier service déployé (`auth/`), image publiée sur `ghcr.io` (voir [ADR-016](../../docs/adr/ADR-016-ghcr-registry.md)), exposé via [`ingress/auth-service.yaml`](ingress/auth-service.yaml) sur `sporya.antoine-cuvilliez.fr/api/auth`. Un `Middleware` Traefik ([`ingress/middleware-strip-auth-prefix.yaml`](ingress/middleware-strip-auth-prefix.yaml)) retire ce préfixe avant transmission au pod — un par service à mesure qu'ils arrivent.
 
 ## Statut
 
-Phase 6 en cours. Namespace, Traefik, cert-manager en place (Phase 5 terminée). Manifestes Postgres et Auth Service écrits, déploiement manuel sur le VPS à valider — voir [`docs/deployment/README.md`](../../docs/deployment/README.md).
+**Phase 6 terminée** (12/08/2026) : `https://sporya.antoine-cuvilliez.fr/api/auth/actuator/health` répond `200` avec un certificat Let's Encrypt de production valide. Chaîne complète vérifiée de bout en bout : DNS → VPS → K3s/Traefik → TLS → middleware → Auth Service → PostgreSQL. Squelette minimal seulement (pas de logique métier) — voir [`services/auth-service/README.md`](../../services/auth-service/README.md). Prochaine étape (Phase 7) : CD automatisé.
