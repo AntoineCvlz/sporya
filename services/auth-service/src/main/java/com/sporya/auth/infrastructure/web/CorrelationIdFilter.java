@@ -13,8 +13,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
- * Porte/génère un Correlation-Id par requête, propagé dans le MDC du logger
- * (clé "correlationId") et renvoyé au client — voir docs/conventions.md#observabilité.
+ * Porte/génère un Correlation-Id par requête, propagé dans le MDC du logger (clé "correlationId")
+ * et renvoyé au client — voir docs/conventions.md#observabilité.
  */
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE)

@@ -10,9 +10,9 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 /**
- * Preuve que la chaîne Spring Boot -> Flyway -> PostgreSQL fonctionne de bout
- * en bout (squelette minimal, voir Phase 6 dans docs/architecture/overview.md).
- * La vraie logique métier (inscription, JWT) arrive dans un incrément suivant.
+ * Preuve que la chaîne Spring Boot -> Flyway -> PostgreSQL fonctionne de bout en bout (squelette
+ * minimal, voir Phase 6 dans docs/architecture/overview.md). La vraie logique métier (inscription,
+ * JWT) arrive dans un incrément suivant.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Testcontainers
