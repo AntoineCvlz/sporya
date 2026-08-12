@@ -1,0 +1,19 @@
+# cert-manager, installé via le mécanisme HelmChart natif de K3s (même
+# pattern que Traefik) — voir ADR-015. Émet et renouvelle automatiquement
+# les certificats TLS Let's Encrypt pour les Ingress K3s.
+#
+# À appliquer une fois sur le VPS : kubectl apply -f cert-manager.yaml
+apiVersion: helm.cattle.io/v1
+kind: HelmChart
+metadata:
+  name: cert-manager
+  namespace: kube-system
+spec:
+  repo: https://charts.jetstack.io
+  chart: cert-manager
+  version: v1.21.1
+  targetNamespace: cert-manager
+  createNamespace: true
+  valuesContent: |-
+    crds:
+      enabled: true

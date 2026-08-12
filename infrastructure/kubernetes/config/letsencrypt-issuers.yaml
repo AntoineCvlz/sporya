@@ -1,0 +1,38 @@
+# ClusterIssuer Let's Encrypt — voir ADR-015. Challenge HTTP-01 via
+# l'ingress class Traefik (pas de dépendance à l'API DNS d'IONOS).
+#
+# Utiliser "letsencrypt-staging" pendant le développement d'un Ingress
+# (certificats non fiables mais pas de rate limit) puis basculer sur
+# "letsencrypt-prod" une fois le challenge validé, en changeant
+# l'annotation cert-manager.io/cluster-issuer de l'Ingress.
+#
+# À appliquer une fois sur le VPS : kubectl apply -f letsencrypt-issuers.yaml
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-staging
+spec:
+  acme:
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
+    email: antoine.cuvilliez@outlook.fr
+    privateKeySecretRef:
+      name: letsencrypt-staging-key
+    solvers:
+      - http01:
+          ingress:
+            ingressClassName: traefik
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: antoine.cuvilliez@outlook.fr
+    privateKeySecretRef:
+      name: letsencrypt-prod-key
+    solvers:
+      - http01:
+          ingress:
+            ingressClassName: traefik
