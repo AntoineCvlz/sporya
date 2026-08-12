@@ -22,7 +22,23 @@
     <logstash-logback-encoder.version>9.0</logstash-logback-encoder.version>
     <spotless-maven-plugin.version>3.9.0</spotless-maven-plugin.version>
     <dependency-check-maven.version>13.0.0</dependency-check-maven.version>
+    <!-- logstash-logback-encoder dépend de Jackson 3.x (groupId tools.jackson) en 3.0.1,
+         qui a des CVE corrigés en 3.1.x — override explicite (voir scan Trivy en CI). -->
+    <postgresql.version>42.7.13</postgresql.version>
+    <jackson3.version>3.2.1</jackson3.version>
   </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>tools.jackson</groupId>
+        <artifactId>jackson-bom</artifactId>
+        <version>${jackson3.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
 
   <dependencies>
     <dependency>
@@ -50,8 +66,11 @@
       <artifactId>flyway-database-postgresql</artifactId>
     </dependency>
     <dependency>
+      <!-- Version explicite : celle gérée par spring-boot-dependencies avait un CVE
+           corrigé (voir scan Trivy en CI). -->
       <groupId>org.postgresql</groupId>
       <artifactId>postgresql</artifactId>
+      <version>${postgresql.version}</version>
       <scope>runtime</scope>
     </dependency>
     <dependency>
