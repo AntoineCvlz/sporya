@@ -148,6 +148,24 @@
         <artifactId>spring-boot-maven-plugin</artifactId>
       </plugin>
       <plugin>
+        <!-- Surefire (bound to `test`) only picks up *Test.java by default -
+             *IT.java (AuthFlowIT, ClubFlowIT, ...) needs Failsafe, bound to
+             `verify`, to actually run. Without this, `mvn test`/`verify` both
+             report BUILD SUCCESS while every integration test is silently
+             skipped - discovered 2026-08-14 debugging a supposedly-green
+             ClubFlowIT that had in fact never executed. -->
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-failsafe-plugin</artifactId>
+        <executions>
+          <execution>
+            <goals>
+              <goal>integration-test</goal>
+              <goal>verify</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
         <groupId>com.diffplug.spotless</groupId>
         <artifactId>spotless-maven-plugin</artifactId>
         <version>${spotless-maven-plugin.version}</version>

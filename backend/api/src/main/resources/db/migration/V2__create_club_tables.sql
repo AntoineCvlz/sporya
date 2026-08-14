@@ -1,3 +1,8 @@
+-- spring.flyway.create-schemas ne crée pas de façon fiable les schémas listés
+-- dans spring.flyway.schemas avant que ce script ne s'exécute — le créer
+-- explicitement ici plutôt que de dépendre de ce mécanisme.
+CREATE SCHEMA IF NOT EXISTS club;
+
 CREATE TABLE club.clubs (
     id UUID PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
