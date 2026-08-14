@@ -10,13 +10,12 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 /**
- * Preuve que la chaîne Spring Boot -> Flyway -> PostgreSQL fonctionne de bout en bout (squelette
- * minimal, voir Phase 6 dans docs/architecture/overview.md). La vraie logique métier (inscription,
- * JWT) arrive dans un incrément suivant.
+ * Preuve que la chaîne Spring Boot -> Flyway -> PostgreSQL fonctionne de bout en bout pour le
+ * module auth, à l'intérieur du monolithe (voir ADR-017).
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Testcontainers
-class AuthServiceApplicationTests {
+class AuthModuleSmokeTest {
 
   @Container @ServiceConnection
   static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16-alpine");

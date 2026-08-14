@@ -1,12 +1,12 @@
-# Auth Service
+# API
 
-Service de référence (gabarit) — voir [ADR-004](../../docs/adr/ADR-004-service-de-reference.md).
+Monolithe modulaire Spring Boot — voir [ADR-017](../../docs/adr/ADR-017-monolithe-modulaire.md). Un seul déployable, un package Java par module métier (`com.sporya.<module>`), chacun avec sa propre couche `controller/application/domain/infrastructure` et son propre schéma PostgreSQL.
 
-## Responsabilité
+## Modules
+
+### `auth` — construit
 
 Identité, authentification, rôles par club ([ADR-011](../../docs/adr/ADR-011-rbac-par-club.md)), émission de JWT ([ADR-013](../../docs/adr/ADR-013-jwt-stateless.md)).
-
-## API
 
 Contrat : [`docs/api/auth-service.yaml`](../../docs/api/auth-service.yaml), Swagger UI en local sur `/swagger-ui.html`.
 
@@ -16,13 +16,17 @@ Contrat : [`docs/api/auth-service.yaml`](../../docs/api/auth-service.yaml), Swag
 | `POST /api/v1/auth/login` | Publique | Authentification, renvoie un access token JWT (RS256, 15 min) |
 | `GET /api/v1/auth/me` | Bearer JWT | Profil de l'utilisateur authentifié |
 
-Pas encore de `ClubMembership` dans le token (claim `memberships` vide) : Club Service n'existe pas encore, voir [ADR-011](../../docs/adr/ADR-011-rbac-par-club.md).
+Pas encore de `ClubMembership` dans le token (claim `memberships` vide) : le module Club n'existe pas encore, voir [ADR-011](../../docs/adr/ADR-011-rbac-par-club.md).
 
 Schéma PostgreSQL : `auth` (voir [ADR-012](../../docs/adr/ADR-012-schema-par-service.md)), créé automatiquement par Flyway au démarrage. Migrations dans `src/main/resources/db/migration/`.
 
+### Modules suivants
+
+Club, Match, ... arrivent comme nouveaux packages `com.sporya.<module>` dans ce même déployable — voir l'[ordre de construction](../../docs/architecture/overview.md#ordre-de-construction-des-modules).
+
 ## Clés JWT (RS256)
 
-Auth Service signe avec une clé privée ; les autres services (à venir) valident avec la clé publique correspondante, sans appel réseau (ADR-013). Fournies via `JWT_PRIVATE_KEY_BASE64` / `JWT_PUBLIC_KEY_BASE64` — le PEM complet, encodé en base64 sur une seule ligne (évite les soucis de sauts de ligne dans les fichiers `.env` / Secrets K8s).
+Le module `auth` signe avec une clé privée ; les autres modules valident avec la clé publique correspondante, en mémoire, sans appel réseau (ADR-013). Fournies via `JWT_PRIVATE_KEY_BASE64` / `JWT_PUBLIC_KEY_BASE64` — le PEM complet, encodé en base64 sur une seule ligne (évite les soucis de sauts de ligne dans les fichiers `.env` / Secrets K8s).
 
 `.env.example` contient une paire **de développement uniquement**, générée pour ce repo — à ne jamais réutiliser pour un déploiement réel. Pour en générer une nouvelle (dev ou prod) :
 

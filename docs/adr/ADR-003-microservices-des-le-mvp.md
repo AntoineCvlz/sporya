@@ -2,7 +2,7 @@
 
 ## Statut
 
-Accepté
+Remplacé par [ADR-017](ADR-017-monolithe-modulaire.md) — la contrainte VPS (1.8Gi RAM, saturée par le seul premier service) rend un JVM par microservice intenable sans upgrade, décision de basculer sur un monolithe modulaire le 2026-08-14.
 
 ## Contexte
 

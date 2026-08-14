@@ -8,6 +8,8 @@ Accepté
 
 En microservices, une base de données partagée entre services est un anti-pattern classique : elle recrée un couplage fort (un monolithe "caché") malgré des déploiements séparés. Le projet démarrant directement en microservices (voir [ADR-003](ADR-003-microservices-des-le-mvp.md)), la question de l'ownership des données se pose dès le premier service.
 
+**Note (2026-08-14, [ADR-017](ADR-017-monolithe-modulaire.md))** : le projet est depuis passé d'un microservice par contexte à un monolithe modulaire (un module = un package Java). La décision ci-dessous ne change pas : elle s'applique désormais par module plutôt que par service réseau, et devient d'autant plus importante qu'elle seule empêche le monolithe de dégénérer en "monolithe de données" avec accès direct cross-module.
+
 ## Options envisagées
 
 - **Une base partagée avec des tables communes** — plus simple à requêter (jointures directes), mais recrée un couplage fort entre services censés être indépendants.

@@ -1,14 +1,13 @@
 name: Service CI
 
-# Reusable workflow — voir ADR-004. Aucun service ne l'invoque encore ;
-# il sera appelé par un workflow court (ex. .github/workflows/auth-service.yml)
-# au moment où le premier service (Auth) sera construit — voir README de ce dossier.
+# Reusable workflow, appelé par un workflow court par déployable (aujourd'hui
+# .github/workflows/api.yml, le monolithe modulaire — voir ADR-017).
 
 on:
   workflow_call:
     inputs:
       service_path:
-        description: "Chemin du service, ex. services/auth-service"
+        description: "Chemin du déployable, ex. backend/api"
         required: true
         type: string
       java_version:

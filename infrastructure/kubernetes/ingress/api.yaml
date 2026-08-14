@@ -1,7 +1,6 @@
-# Ingress par service, fusionnés par Traefik sur le même host — chaque
-# service route sur son propre préfixe d'API versionné (/api/v1/auth,
-# /api/v1/clubs, ...), donc pas besoin de Middleware de réécriture : le
-# chemin transmis au pod est déjà celui que le contrôleur attend.
+# Monolithe modulaire (ADR-017) : un seul déployable derrière /api/v1, tous
+# les modules (auth, puis club, match, ...) partagent ce même Ingress — plus
+# besoin d'un Ingress par module à chaque nouveau module ajouté.
 #
 # /actuator/* n'est volontairement PAS exposé ici (accès interne seulement,
 # pour les probes K8s et le scrape Prometheus) — voir docs/deployment/README.md.
@@ -11,7 +10,7 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: auth-service
+  name: api
   namespace: sporya
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-prod
@@ -25,10 +24,10 @@ spec:
     - host: sporya.antoine-cuvilliez.fr
       http:
         paths:
-          - path: /api/v1/auth
+          - path: /api/v1
             pathType: Prefix
             backend:
               service:
-                name: auth-service
+                name: api
                 port:
                   number: 8080

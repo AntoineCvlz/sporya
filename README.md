@@ -14,7 +14,7 @@ Le projet est développé comme un produit logiciel complet : architecture justi
 
 ## Architecture en un coup d'œil
 
-- **Style** : microservices dès le MVP, mais construits **un service à la fois** (Auth → Club → Match, puis les suivants selon leurs dépendances réelles) — jamais les huit services cibles en parallèle. Voir [ADR-003](docs/adr/ADR-003-microservices-des-le-mvp.md) et [ADR-004](docs/adr/ADR-004-service-de-reference.md).
+- **Style** : monolithe modulaire, construit **un module à la fois** (Auth → Club → Match, puis les suivants selon leurs dépendances réelles) — un seul déployable Spring Boot, un package Java par contexte borné. Voir [ADR-017](docs/adr/ADR-017-monolithe-modulaire.md).
 - **Backend** : Java / Spring Boot par service.
 - **Frontend** : React / TypeScript.
 - **Données** : PostgreSQL, un schéma par service dès sa création.
@@ -31,14 +31,14 @@ Le détail complet (personas, cas d'usage, bounded contexts, C4, modèle de donn
 Sporya/
 ├── docs/                 Documentation vivante (architecture, ADR, API, DB, déploiement, sécurité, events)
 ├── infrastructure/       Docker, Kubernetes/K3s, monitoring
-├── services/             Un dossier par microservice, ajouté au fil de sa construction
+├── backend/api/          Monolithe Spring Boot, un package Java par module métier
 ├── frontend/             Application React
-├── tests/                Tests bout en bout, cross-services
+├── tests/                Tests bout en bout, cross-modules
 ├── scripts/               Scripts d'exploitation (provisioning, backups, etc.)
 └── .github/workflows/    Pipelines CI/CD
 ```
 
-`services/` et `infrastructure/docker/` sont volontairement vides à ce stade : ils se remplissent phase après phase (voir la roadmap), pas d'un coup.
+`backend/api/` se remplit module après module (voir la roadmap), pas d'un coup — mais reste un seul déployable dès le premier module.
 
 ## Démarrer en local
 

@@ -11,9 +11,8 @@ scrape_configs:
     static_configs:
       - targets: ["postgres-exporter:9187"]
 
-  # Services applicatifs — un job ajouté au moment où le service est construit
-  # et expose /actuator/prometheus (voir ADR-009).
-  - job_name: auth-service
+  # Monolithe applicatif (ADR-017) — expose /actuator/prometheus (voir ADR-009).
+  - job_name: api
     metrics_path: /actuator/prometheus
     static_configs:
-      - targets: ["auth-service:8080"]
+      - targets: ["api:8080"]

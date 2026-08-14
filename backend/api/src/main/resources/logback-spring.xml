@@ -7,7 +7,7 @@
   <appender name="JSON_STDOUT" class="ch.qos.logback.core.ConsoleAppender">
     <encoder class="net.logstash.logback.encoder.LogstashEncoder">
       <includeMdcKeyName>correlationId</includeMdcKeyName>
-      <customFields>{"service":"auth-service"}</customFields>
+      <customFields>{"service":"api"}</customFields>
     </encoder>
   </appender>
 

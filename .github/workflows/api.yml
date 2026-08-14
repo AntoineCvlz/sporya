@@ -1,13 +1,13 @@
-name: Auth Service CI
+name: API CI
 on:
   push:
     branches: [main]
     paths:
-      - "services/auth-service/**"
-      - ".github/workflows/auth-service.yml"
+      - "backend/api/**"
+      - ".github/workflows/api.yml"
       - ".github/workflows/service-ci.yml"
   pull_request:
-    paths: ["services/auth-service/**"]
+    paths: ["backend/api/**"]
   workflow_dispatch: {} # permet un re-run manuel indépendant des filtres de chemin ci-dessus
 jobs:
   ci:
@@ -16,4 +16,4 @@ jobs:
       contents: read
       packages: write
     with:
-      service_path: services/auth-service
+      service_path: backend/api

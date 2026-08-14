@@ -2,7 +2,7 @@
 
 ## Statut
 
-Accepté (implémentation différée à la V2 — introduction avec Statistics/Notification Service)
+Remplacé par [ADR-017](ADR-017-monolithe-modulaire.md) — Match, Statistics et Notification deviennent des modules du même monolithe plutôt que des services séparés, la raison d'être du découplage par broker disparaît ; remplacé par des événements in-process (Spring `ApplicationEventPublisher`). Kafka redevient une option si un besoin réel de durabilité/rejeu ou de scaling externe apparaît plus tard.
 
 ## Contexte
 

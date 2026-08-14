@@ -47,10 +47,10 @@ services:
     networks:
       - sporya-net
 
-  auth-service:
+  api:
     build:
-      context: ./services/auth-service
-    container_name: sporya-auth-service
+      context: ./backend/api
+    container_name: sporya-api
     restart: unless-stopped
     environment:
       DB_HOST: postgres
@@ -61,7 +61,7 @@ services:
       JWT_PRIVATE_KEY_BASE64: ${JWT_PRIVATE_KEY_BASE64}
       JWT_PUBLIC_KEY_BASE64: ${JWT_PUBLIC_KEY_BASE64}
     ports:
-      - "${AUTH_SERVICE_PORT:-8080}:8080"
+      - "${API_PORT:-8080}:8080"
     depends_on:
       postgres:
         condition: service_healthy
@@ -76,7 +76,7 @@ services:
     ports:
       - "${FRONTEND_PORT:-5173}:80"
     depends_on:
-      - auth-service
+      - api
     networks:
       - sporya-net
 

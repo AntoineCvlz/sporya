@@ -50,7 +50,7 @@ Un même utilisateur humain peut cumuler plusieurs rôles (ex. joueur + analyste
 9. Dashboard équipe (matchs, forme récente)
 10. Frontend responsive
 
-Hors MVP explicitement : Kafka, WebSocket, Analytics avancée, Data Import, IA, notifications push, multi-sport.
+Hors MVP explicitement : WebSocket, Analytics avancée, Data Import, IA, notifications push, multi-sport.
 
 ## Règles métier principales
 
@@ -78,49 +78,49 @@ Hors MVP explicitement : Kafka, WebSocket, Analytics avancée, Data Import, IA, 
 | Data Import | Ingestion externe, validation, déduplication | Jobs d'import | Club & Roster, Competition & Match |
 | AI / Insights | Réponses en langage naturel sur données fiables | Aucune donnée propre | Statistics, Analytics |
 
-Ces contextes sont la structure logique du domaine. Un contexte ne devient un **service déployable** que lorsque sa séparation est réellement justifiée — voir la table d'ordre de construction ci-dessous.
+Ces contextes sont la structure logique du domaine. Chaque contexte devient un **module** (package Java, `com.sporya.<contexte>`) dès sa construction, à l'intérieur du monolithe unique `backend/api` ([ADR-017](../adr/ADR-017-monolithe-modulaire.md)). Un module ne redevient un **service réseau séparé** que si sa séparation est réellement justifiée par une raison technique (charge, cycle de déploiement différent, runtime différent) — voir la table d'ordre de construction ci-dessous.
 
 ## Diagrammes C4
 
 Voir [`context.md`](context.md) (niveau 1 — acteurs et systèmes externes) et [`containers.md`](containers.md) (niveau 2 — services, bases, flux).
 
-## Ordre de construction des microservices
+## Ordre de construction des modules
 
-Décision : **microservices dès le V1, construits un par un**, jamais les huit en parallèle (voir [ADR-003](../adr/ADR-003-microservices-des-le-mvp.md)).
+Décision : **monolithe modulaire, modules construits un par un**, jamais les huit en parallèle (voir [ADR-017](../adr/ADR-017-monolithe-modulaire.md)).
 
-| # | Service | Construit en | Dépend de | Justification |
+| # | Module | Construit en | Dépend de | Justification |
 |---|---|---|---|---|
-| 1 | Identity/Auth | V1, en premier | Aucune | Sert de gabarit (structure interne, Dockerfile, CI, K8s, observabilité) pour tous les suivants |
-| 2 | Club Service | V1 | Auth (JWT validé localement) | Domaine CRUD stable, confirme le gabarit avant un domaine complexe |
-| 3 | Match Service | V1 (référence de complexité métier) | Club (REST) | State machine, événements, score dérivé — premier producteur d'événements |
-| 4 | Statistics Service | V2 | Match (événements) | N'a de sens qu'une fois qu'il y a un historique multi-matchs à agréger |
-| 5 | Notification Service | V2 | Match (Kafka) | Devient un service propre avec plusieurs consommateurs et des préférences utilisateur |
-| 6 | Analytics Service | V3 | Statistics (REST) | Frontière avec Statistics à réévaluer au moment venu (ADR à ce moment-là) |
-| 7 | Data Import Service | V3 | Club, Match (cibles) | Cycle de vie très différent (batch vs synchrone) |
-| 8 | AI Service | V4 | Statistics, Analytics (REST) | Runtime différent (Python/FastAPI), dépendances lourdes (LLM) |
+| 1 | Identity/Auth | V1, en premier | Aucune | Premier module, établit la structure interne (`controller/application/domain/infrastructure`) réutilisée par les suivants |
+| 2 | Club | V1 | Auth (appel Java direct) | Domaine CRUD stable, confirme la convention de module avant un domaine complexe |
+| 3 | Match | V1 (référence de complexité métier) | Club (appel Java direct) | State machine, événements, score dérivé — premier producteur d'événements |
+| 4 | Statistics | V2 | Match (événements) | N'a de sens qu'une fois qu'il y a un historique multi-matchs à agréger |
+| 5 | Notification | V2 | Match (événement in-process) | Plusieurs consommateurs et des préférences utilisateur, mais reste un module, pas un service réseau |
+| 6 | Analytics | V3 | Statistics (appel Java direct) | Frontière avec Statistics à réévaluer au moment venu (ADR à ce moment-là) |
+| 7 | Data Import | V3 | Club, Match (cibles) | Cycle de vie très différent (batch vs synchrone) |
+| 8 | AI Service | V4 | Statistics, Analytics (REST) | Seule exception : runtime différent (Python/FastAPI), dépendances lourdes (LLM), reste un processus séparé |
 
-Découplage : aucun appel réseau à Auth par requête — chaque service valide le JWT localement (voir [ADR-013](../adr/ADR-013-jwt-stateless.md)).
+Découplage : aucun appel réseau pour valider un JWT — la validation est locale au process, a fortiori triviale en monolithe (voir [ADR-013](../adr/ADR-013-jwt-stateless.md)).
 
-## Communication inter-services
+## Communication inter-modules
 
 | Flux | Mécanisme | Raison |
 |---|---|---|
-| Frontend → services | REST synchrone | Réponse immédiate attendue |
-| Match → Statistics / Notification | Kafka | Traitement asynchrone tolérable, plusieurs consommateurs |
-| Match live → Frontend | WebSocket | Mise à jour poussée, pas de polling |
-| AI Service → Statistics/Analytics | REST synchrone interne | Réponse immédiate et fiable requise |
-| Match → Club | REST synchrone | Validation de composition d'équipe |
+| Frontend → API | REST synchrone | Réponse immédiate attendue |
+| Match → Statistics / Notification | Événement in-process (Spring `ApplicationEventPublisher`, `@Async` si besoin) | Même process, traitement découplé du code appelant sans broker externe |
+| Match live → Frontend | WebSocket | Mise à jour poussée, pas de polling — inchangé, c'est un mécanisme de push navigateur, pas inter-module |
+| Match → Club | Appel Java direct (service applicatif) | Validation de composition d'équipe, plus de sérialisation réseau |
+| AI Service → Statistics/Analytics | REST synchrone | Seul flux réseau restant : AI Service est un processus externe (runtime différent) |
 
 ## Modèle de données
 
-Voir [`docs/database/`](../database/). Chaque service possède son propre schéma PostgreSQL dès sa création — pas de base partagée logiquement, même si les schémas cohabitent sur une seule instance au démarrage pour économiser les ressources du VPS.
+Voir [`docs/database/`](../database/). Chaque module possède son propre schéma PostgreSQL dès sa création — pas de base partagée logiquement, même si tous les schémas cohabitent dans un seul conteneur PostgreSQL et un seul déployable applicatif pour économiser les ressources du VPS ([ADR-012](../adr/ADR-012-schema-par-service.md)).
 
 ## Roadmap résumée
 
 | Version | Contenu |
 |---|---|
-| V1 — MVP | Auth, Club, Match Service ; React ; PostgreSQL ; Docker ; CI ; K3s ; premier déploiement |
-| V2 | Statistics, Notification ; Redis ; Kafka ; WebSocket |
+| V1 — MVP | Auth, Club, Match (modules du monolithe `backend/api`) ; React ; PostgreSQL ; Docker ; CI ; K3s ; premier déploiement |
+| V2 | Statistics, Notification ; Redis ; WebSocket |
 | V3 | Analytics, Data Import ; comparaisons, statistiques avancées |
 | V4 | AI Service, assistant conversationnel |
 | V5 | Industrialisation : observabilité complète, sécurité avancée, backups, optimisation, doc finale |
@@ -129,9 +129,9 @@ Voir [`docs/database/`](../database/). Chaque service possède son propre schém
 
 | Risque | Mitigation |
 |---|---|
-| Chantier d'infra répété à chaque nouveau service | Gabarit posé dès Auth Service, CI en reusable workflow, manifestes K8s copiés |
-| Création d'un service pour un contexte pas encore prêt | Un service n'est construit que si sa raison d'être est réelle |
-| Duplication de code cross-cutting entre services | Dupliquer d'abord (2-3 services), extraire une lib partagée seulement si ça devient douloureux |
+| Le monolithe grossit sans discipline de frontière entre modules | Un schéma PostgreSQL par module, aucun accès direct à la persistence d'un autre module, uniquement des appels Java explicites |
+| Création d'un module pour un contexte pas encore prêt | Un module n'est construit que si sa raison d'être est réelle |
+| Duplication de code cross-cutting entre modules | Dupliquer d'abord (2-3 modules), extraire une lib partagée seulement si ça devient douloureux |
 | IA qui invente des statistiques | Accès uniquement via l'API Statistics/Analytics, jamais de génération libre de chiffres |
 | Dépendance à une API sportive externe payante | Démarrer avec données mockées/CSV, interface d'import agnostique de la source |
 

@@ -1,11 +1,11 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: auth-service
+  name: api
   namespace: sporya
 spec:
   selector:
-    app.kubernetes.io/name: auth-service
+    app.kubernetes.io/name: api
   ports:
     - port: 8080
       targetPort: 8080

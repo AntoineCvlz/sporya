@@ -2,7 +2,7 @@
 
 ## Statut
 
-Accepté
+Remplacé par [ADR-017](ADR-017-monolithe-modulaire.md) — un seul déployable (`backend/api`) signifie qu'il n'y a plus de gabarit à copier par service ; la convention interne `controller/application/domain/infrastructure` qu'il établissait reste utilisée, mais comme structure d'un package par module à l'intérieur du monolithe.
 
 ## Contexte
 

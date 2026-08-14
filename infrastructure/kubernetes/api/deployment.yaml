@@ -1,27 +1,28 @@
-# Auth Service — gabarit pour les déploiements suivants (voir ADR-004).
+# API — monolithe modulaire (voir ADR-017), un seul déployable pour tous les
+# modules métier (auth, puis club, match, ...).
 # L'image est buildée/publiée par service-ci.yml sur ghcr.io (ADR-016),
 # taguée avec le SHA du commit qui a déclenché le run CI — mettre à jour le
 # tag ci-dessous à chaque nouveau déploiement manuel (voir docs/deployment/README.md).
-# Dernier déploiement : commit 517ae344ce5b26494332941317e26a5bce7e3bf0
-# (vraie logique métier register/login/me).
+# Renommé de auth-service à api le 2026-08-14 (ADR-017) : nécessite un nouveau
+# build CI publiant ghcr.io/antoinecvlz/api avant un premier déploiement sous ce nom.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: auth-service
+  name: api
   namespace: sporya
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app.kubernetes.io/name: auth-service
+      app.kubernetes.io/name: api
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: auth-service
+        app.kubernetes.io/name: api
     spec:
       containers:
-        - name: auth-service
-          image: ghcr.io/antoinecvlz/auth-service:517ae344ce5b26494332941317e26a5bce7e3bf0
+        - name: api
+          image: ghcr.io/antoinecvlz/api:fe7b1bc76de69cb88e5e536a9860d4a2b3cb4347
           ports:
             - containerPort: 8080
           env:

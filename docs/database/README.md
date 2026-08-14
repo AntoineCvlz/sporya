@@ -2,7 +2,7 @@
 
 ## Ownership
 
-Chaque service possède son propre schéma PostgreSQL dès sa création (voir [ADR-012](../adr/ADR-012-schema-par-service.md)). Aucune jointure SQL cross-schéma : les références entre données de services différents se font par ID, résolues via appel REST si nécessaire.
+Chaque module possède son propre schéma PostgreSQL dès sa création (voir [ADR-012](../adr/ADR-012-schema-par-service.md) et [ADR-017](../adr/ADR-017-monolithe-modulaire.md)). Aucune jointure SQL cross-schéma : les références entre données de modules différents se font par ID, résolues via un appel Java direct (même process) si nécessaire.
 
 ## Modèle de données initial
 
@@ -37,16 +37,16 @@ erDiagram
 
 ## Répartition par schéma (V1)
 
-| Schéma | Service | Entités |
+| Schéma | Module | Entités |
 |---|---|---|
-| `auth` | Auth Service | `User`, `ClubMembership` |
-| `club` | Club Service | `Club`, `Team`, `Player`, `StaffMember` |
-| `match` | Match Service | `Competition`, `Season`, `Match`, `MatchEvent` |
+| `auth` | Auth | `User`, `ClubMembership` |
+| `club` | Club | `Club`, `Team`, `Player`, `StaffMember` |
+| `match` | Match | `Competition`, `Season`, `Match`, `MatchEvent` |
 
-`PlayerMatchStatistics` / `TeamMatchStatistics` rejoignent un schéma `statistics` lors de la construction du Statistics Service (V2).
+`PlayerMatchStatistics` / `TeamMatchStatistics` rejoignent un schéma `statistics` lors de la construction du module Statistics (V2).
 
 ## Migrations
 
-Flyway, une migration versionnée par changement de schéma, un dossier de migrations par service (`services/<nom>-service/src/main/resources/db/migration/`). Le schéma lui-même est créé automatiquement par Flyway au démarrage (`spring.flyway.create-schemas: true`), pas besoin de script d'initialisation manuel côté Postgres.
+Flyway, une migration versionnée par changement de schéma, un dossier de migrations par module dans le même déployable (`backend/api/src/main/resources/db/migration/`, préfixé ou organisé par module au fur et à mesure qu'il y en a plusieurs). Le schéma lui-même est créé automatiquement par Flyway au démarrage (`spring.flyway.create-schemas: true`), pas besoin de script d'initialisation manuel côté Postgres.
 
-Auth Service (squelette Phase 6) n'a pas encore de migration : aucune entité pour l'instant, seul le schéma `auth` (vide) est créé au démarrage. La première migration (`V1__create_users_table.sql` ou équivalent) arrive avec l'entité `User`.
+Module Auth (Phase 6) : première migration `V1__create_users_table.sql`, schéma `auth`.

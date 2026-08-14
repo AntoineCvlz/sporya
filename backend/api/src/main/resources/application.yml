@@ -8,7 +8,7 @@ server:
 
 spring:
   application:
-    name: auth-service
+    name: api
   datasource:
     url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:sporya}
     username: ${DB_USER:sporya}
@@ -37,9 +37,9 @@ management:
 
 sporya:
   jwt:
-    # PEM (PKCS8/X.509) encodé en base64 — voir services/auth-service/README.md
+    # PEM (PKCS8/X.509) encodé en base64 — voir backend/api/README.md
     # pour la génération. Jamais de vraie clé de prod dans ce fichier ou .env.example.
     private-key-base64: ${JWT_PRIVATE_KEY_BASE64}
     public-key-base64: ${JWT_PUBLIC_KEY_BASE64}
-    issuer: sporya-auth-service
+    issuer: sporya-api
     access-token-ttl-minutes: ${JWT_ACCESS_TOKEN_TTL_MINUTES:15}

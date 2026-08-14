@@ -14,7 +14,7 @@ FROM eclipse-temurin:21-jre-alpine
 RUN apk upgrade --no-cache && addgroup -S spring && adduser -S spring -G spring
 USER spring:spring
 WORKDIR /app
-COPY --from=build /app/target/auth-service.jar app.jar
+COPY --from=build /app/target/api.jar app.jar
 
 # Footprint mémoire borné explicitement plutôt que laissé aux heuristiques du JVM
 # (MaxRAMPercentage) — le VPS de prod a peu de RAM à partager entre plusieurs
