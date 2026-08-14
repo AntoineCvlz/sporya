@@ -10,17 +10,17 @@
 
 Sporya permet à des clubs, entraîneurs, analystes et joueurs de gérer des clubs, équipes et compétitions, de suivre des matchs (y compris en direct), et d'analyser des statistiques individuelles et collectives — avec, à terme, un assistant IA capable de répondre à des questions en langage naturel sur des données réelles et vérifiées (jamais inventées).
 
-Le projet est développé comme un produit logiciel complet : architecture justifiée, tests automatisés, CI/CD, observabilité, déploiement Kubernetes (K3s) sur VPS réel — pas seulement un CRUD de démonstration.
+Le projet est développé comme un produit logiciel complet : architecture justifiée, tests automatisés, CI/CD, observabilité, déploiement sur VPS réel (Docker Compose + Traefik) — pas seulement un CRUD de démonstration.
 
 ## Architecture en un coup d'œil
 
 - **Style** : monolithe modulaire, construit **un module à la fois** (Auth → Club → Match, puis les suivants selon leurs dépendances réelles) — un seul déployable Spring Boot, un package Java par contexte borné. Voir [ADR-017](docs/adr/ADR-017-monolithe-modulaire.md).
 - **Backend** : Java / Spring Boot par service.
 - **Frontend** : React / TypeScript.
-- **Données** : PostgreSQL, un schéma par service dès sa création.
-- **Asynchrone** : Kafka (introduit à partir du Statistics/Notification Service), Redis (introduit quand un besoin réel apparaît).
+- **Données** : PostgreSQL, un schéma par module dès sa création.
+- **Asynchrone** : événements Spring in-process entre modules (Kafka abandonné, voir [ADR-017](docs/adr/ADR-017-monolithe-modulaire.md)), Redis (introduit quand un besoin réel apparaît).
 - **Temps réel** : WebSocket pour le suivi de match en direct.
-- **Infra** : Docker en local, K3s sur VPS, GitHub Actions pour la CI/CD.
+- **Infra** : Docker Compose partout — local et VPS (Traefik en conteneur pour le TLS en prod, voir [ADR-018](docs/adr/ADR-018-docker-compose-vps.md)), GitHub Actions pour la CI/CD.
 - **Observabilité** : logs structurés, OpenTelemetry, Prometheus, Grafana.
 
 Le détail complet (personas, cas d'usage, bounded contexts, C4, modèle de données, sécurité, roadmap, risques) est dans [`docs/architecture/overview.md`](docs/architecture/overview.md).
@@ -30,7 +30,7 @@ Le détail complet (personas, cas d'usage, bounded contexts, C4, modèle de donn
 ```text
 Sporya/
 ├── docs/                 Documentation vivante (architecture, ADR, API, DB, déploiement, sécurité, events)
-├── infrastructure/       Docker, Kubernetes/K3s, monitoring
+├── infrastructure/       Docker (local + prod), Kubernetes/K3s (archivé), monitoring
 ├── backend/api/          Monolithe Spring Boot, un package Java par module métier
 ├── frontend/             Application React
 ├── tests/                Tests bout en bout, cross-modules
@@ -69,7 +69,7 @@ Démarre le socle local — aucun service applicatif encore construit (voir la r
 | API (OpenAPI, par service) | [`docs/api/`](docs/api/) |
 | Déploiement | [`docs/deployment/`](docs/deployment/) |
 | Sécurité | [`docs/security/`](docs/security/) |
-| Catalogue d'événements Kafka | [`docs/events/`](docs/events/) |
+| Catalogue d'événements internes | [`docs/events/`](docs/events/) |
 
 ## Contexte du projet
 

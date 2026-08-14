@@ -2,7 +2,7 @@
 
 ## Statut
 
-Accepté
+Remplacé par [ADR-018](ADR-018-docker-compose-vps.md) — abandon de K3s au profit de Docker Compose ; Traefik continue de jouer le rôle de point d'entrée HTTPS direct décrit ici, mais en conteneur Docker plutôt qu'en ingress K3s.
 
 ## Contexte
 

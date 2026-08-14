@@ -1,5 +1,7 @@
 # Kubernetes / K3s
 
+> **Non déployé actuellement.** Depuis [ADR-018](../../docs/adr/ADR-018-docker-compose-vps.md) (2026-08-14), le VPS tourne sur Docker Compose + Traefik en conteneur (voir [`infrastructure/docker/`](../docker/)), pas K3s — le socle d'orchestration coûtait plus de RAM qu'il n'apportait pour un monolithe à 2 déployables. Ces manifestes restent dans le repo comme référence/preuve de compétence Kubernetes, transférables si le projet héberge un jour plusieurs déployables indépendants (candidat : AI Service, V4).
+
 ```text
 kubernetes/
 ├── namespace/
@@ -32,4 +34,4 @@ Monolithe modulaire (`api/`, [ADR-017](../../docs/adr/ADR-017-monolithe-modulair
 
 ## Statut
 
-Phase 6 (premier déploiement) et logique métier module Auth (inscription/connexion JWT) + frontend minimal terminés — voir [`backend/api/README.md`](../../backend/api/README.md) et [`frontend/README.md`](../../frontend/README.md). Renommé `auth-service` → `api` le 2026-08-14 ([ADR-017](../../docs/adr/ADR-017-monolithe-modulaire.md)) : les anciennes ressources K8s `auth-service` (Deployment/Service/Ingress) restent à supprimer manuellement sur le cluster au moment du prochain déploiement (`kubectl delete deployment/service/ingress auth-service -n sporya`). Prochaine étape (Phase 7) : CD automatisé.
+Phase 6 (premier déploiement K3s) et logique métier module Auth (inscription/connexion JWT) + frontend minimal validés le 12/08/2026 sur l'ancien VPS — voir [`backend/api/README.md`](../../backend/api/README.md) et [`frontend/README.md`](../../frontend/README.md). Le VPS a été réinitialisé le 2026-08-14 et le déploiement réel est repassé sur Docker Compose ([ADR-018](../../docs/adr/ADR-018-docker-compose-vps.md), voir [`docs/deployment/README.md`](../../docs/deployment/README.md)) — ces manifestes ne sont plus appliqués tels quels, ils resteraient à adapter (renommage `auth-service` → `api` déjà fait ici) si K8s redevenait la cible de déploiement un jour.

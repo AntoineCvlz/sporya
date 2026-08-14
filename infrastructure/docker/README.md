@@ -1,11 +1,13 @@
 # Docker
 
-Le `docker-compose.yml` racine (Phase 2) démarre le socle local :
+Deux fichiers Compose, deux usages :
 
-| Service | Rôle | Port local |
-|---|---|---|
-| `postgres` | Base de données (schémas créés par service, [ADR-012](../../docs/adr/ADR-012-schema-par-service.md)) | `5432` |
-| `adminer` | Client web léger pour inspecter la base en développement | `8081` |
+| Fichier | Usage | Images | Ports |
+|---|---|---|---|
+| [`docker-compose.yml`](../../docker-compose.yml) (racine) | Développement local | `build:` local (`backend/api`, `frontend`) | Tous publiés sur `localhost` |
+| [`docker-compose.prod.yml`](docker-compose.prod.yml) | VPS (ADR-018) | `image:` GHCR (`ghcr.io/antoinecvlz/...`) | Seul Traefik (80/443) publié ; le reste sur `127.0.0.1` uniquement |
+
+## Local
 
 ```bash
 cp .env.example .env
@@ -14,4 +16,10 @@ docker compose ps        # vérifier que postgres est "healthy"
 docker compose down -v   # arrêt + suppression des données
 ```
 
-Chaque microservice ajoutera son propre `Dockerfile` (multi-stage) dans `services/<nom>-service/` au moment de sa construction, et un `service:` correspondant sera ajouté ici au `docker-compose.yml` — en copiant le gabarit établi par Auth Service (premier service construit, voir [ADR-004](../../docs/adr/ADR-004-service-de-reference.md)). Kafka et Redis ne sont ajoutés que lorsqu'un besoin réel apparaît ([ADR-005](../../docs/adr/ADR-005-kafka.md), [ADR-006](../../docs/adr/ADR-006-redis.md)).
+Démarre `postgres`, `adminer`, `postgres-exporter`, `api`, `frontend`, `prometheus`, `grafana` — voir la table du [`README.md`](../../README.md#démarrer-en-local) racine.
+
+## Production (VPS)
+
+Voir [`docs/deployment/README.md`](../../docs/deployment/README.md) pour la procédure complète (provisioning, secrets, premier déploiement, bascule staging→prod du certificat). En résumé : `docker-compose.prod.yml` ajoute Traefik (TLS via son résolveur ACME intégré, routage par labels vers `api`/`frontend`) et retire tout port public hors 80/443 — Postgres, Prometheus, Grafana ne sont accessibles que via tunnel SSH (`127.0.0.1`).
+
+Le `.env` réel du VPS n'est **jamais commité** — gabarit dans [`.env.prod.example`](.env.prod.example).

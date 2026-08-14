@@ -1,0 +1,172 @@
+# Déploiement VPS (ADR-018) : Docker Compose + Traefik en conteneur, plus de
+# K3s. Fichier autonome (pas un override du docker-compose.yml racine, qui
+# reste dédié au développement local) : images GHCR au lieu de build local,
+# aucun port publié sur 0.0.0.0 hors Traefik (80/443), labels de routage
+# Traefik au lieu de manifestes Ingress K8s.
+#
+# Usage sur le VPS (voir docs/deployment/README.md) :
+#   docker compose -f docker-compose.prod.yml pull
+#   docker compose -f docker-compose.prod.yml up -d
+
+name: sporya
+
+services:
+  traefik:
+    image: traefik:v3.3
+    container_name: sporya-traefik
+    restart: unless-stopped
+    command:
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+      - --entrypoints.web.http.redirections.entrypoint.to=websecure
+      - --entrypoints.web.http.redirections.entrypoint.scheme=https
+      - --certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL:?ACME_EMAIL manquant dans .env}
+      - --certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json
+      - --certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web
+      # Retirer cette ligne une fois le certificat prod validé sans erreur
+      # (voir docs/deployment/README.md) — évite le rate limit Let's Encrypt
+      # pendant la mise au point.
+      - --certificatesresolvers.letsencrypt.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - traefik-acme:/letsencrypt
+    networks:
+      - sporya-net
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: sporya-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-sporya}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD manquant dans .env}
+      POSTGRES_DB: ${POSTGRES_DB:-sporya}
+    ports:
+      # Admin uniquement (tunnel SSH) — jamais exposé publiquement.
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - sporya-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-sporya} -d ${POSTGRES_DB:-sporya}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - sporya-net
+
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.15.0
+    container_name: sporya-postgres-exporter
+    restart: unless-stopped
+    environment:
+      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER:-sporya}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD manquant dans .env}@postgres:5432/${POSTGRES_DB:-sporya}?sslmode=disable"
+    ports:
+      - "127.0.0.1:9187:9187"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - sporya-net
+
+  api:
+    image: ghcr.io/antoinecvlz/api:${IMAGE_TAG:?IMAGE_TAG manquant dans .env}
+    container_name: sporya-api
+    restart: unless-stopped
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${POSTGRES_DB:-sporya}
+      DB_USER: ${POSTGRES_USER:-sporya}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      JWT_PRIVATE_KEY_BASE64: ${JWT_PRIVATE_KEY_BASE64:?JWT_PRIVATE_KEY_BASE64 manquant dans .env}
+      JWT_PUBLIC_KEY_BASE64: ${JWT_PUBLIC_KEY_BASE64:?JWT_PUBLIC_KEY_BASE64 manquant dans .env}
+    # Pas de port publié : joignable uniquement via Traefik (réseau Docker interne).
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      # start_period généreux exprès : un démarrage JVM lent sous pression CPU
+      # ne doit pas être pris pour un échec (vécu le 12/08/2026, voir
+      # docs/deployment/README.md#dimensionnement-mémoire).
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/actuator/health/readiness"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 60s
+    mem_limit: 400m
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.api.rule=Host(`sporya.antoine-cuvilliez.fr`) && PathPrefix(`/api/v1`)
+      - traefik.http.routers.api.entrypoints=websecure
+      - traefik.http.routers.api.tls.certresolver=letsencrypt
+      - traefik.http.services.api.loadbalancer.server.port=8080
+    networks:
+      - sporya-net
+
+  frontend:
+    image: ghcr.io/antoinecvlz/frontend:${IMAGE_TAG:?IMAGE_TAG manquant dans .env}
+    container_name: sporya-frontend
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    labels:
+      - traefik.enable=true
+      # Règle plus courte que celle de `api` (pas de PathPrefix) : Traefik
+      # priorise déjà nativement la règle la plus spécifique, donc /api/v1
+      # part vers `api` sans configuration de priorité explicite — même
+      # comportement que l'Ingress K8s d'avant (ADR-018).
+      - traefik.http.routers.frontend.rule=Host(`sporya.antoine-cuvilliez.fr`)
+      - traefik.http.routers.frontend.entrypoints=websecure
+      - traefik.http.routers.frontend.tls.certresolver=letsencrypt
+      - traefik.http.services.frontend.loadbalancer.server.port=80
+    networks:
+      - sporya-net
+
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    container_name: sporya-prometheus
+    restart: unless-stopped
+    volumes:
+      - ../monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - sporya-prometheus-data:/prometheus
+    ports:
+      - "127.0.0.1:9090:9090"
+    depends_on:
+      - postgres-exporter
+    networks:
+      - sporya-net
+
+  grafana:
+    image: grafana/grafana:11.3.1
+    container_name: sporya-grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD manquant dans .env}
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+    volumes:
+      - ../monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ../monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - sporya-grafana-data:/var/lib/grafana
+    ports:
+      - "127.0.0.1:3001:3000"
+    depends_on:
+      - prometheus
+    networks:
+      - sporya-net
+
+networks:
+  sporya-net:
+    name: sporya-net
+
+volumes:
+  sporya-postgres-data:
+  sporya-prometheus-data:
+  sporya-grafana-data:
+  traefik-acme:

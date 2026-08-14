@@ -2,7 +2,7 @@
 
 ## Statut
 
-Accepté (mise en place à la Phase 5)
+Remplacé par [ADR-018](ADR-018-docker-compose-vps.md) — le VPS a été réinitialisé (2026-08-14) et l'architecture est désormais un monolithe modulaire ([ADR-017](ADR-017-monolithe-modulaire.md)) : le socle K3s coûtait plus de RAM qu'il n'apportait pour 2 déployables. Basculé sur Docker Compose + Traefik en conteneur.
 
 ## Contexte
 

@@ -4,63 +4,67 @@
 
 `docker compose up` — voir [`README.md`](../../README.md#démarrer-en-local) et [`infrastructure/docker/`](../../infrastructure/docker/).
 
-## VPS / K3s (Phase 5)
+## VPS (Phase 5/6, révisé — ADR-018)
 
-Le VPS (`87.106.171.146`, Ubuntu 24.04) n'héberge que Sporya — l'ancienne application `collector-shop` qui y tournait a été décommissionnée (voir [ADR-015](../adr/ADR-015-traefik-entree-directe.md), qui remplace [ADR-014](../adr/ADR-014-cohabitation-vps-existant.md)).
+Le VPS (`87.106.171.146`) a été réinitialisé le 2026-08-14 (image Ubuntu 26 fraîche) — l'occasion d'abandonner K3s au profit de **Docker Compose + Traefik en conteneur** ([ADR-018](../adr/ADR-018-docker-compose-vps.md)), qui remplace [ADR-008](../adr/ADR-008-k3s.md) (K3s) et [ADR-015](../adr/ADR-015-traefik-entree-directe.md) (Traefik comme ingress K3s). `infrastructure/kubernetes/` reste dans le repo pour référence mais n'est plus le mécanisme de déploiement réel — voir [`infrastructure/kubernetes/README.md`](../../infrastructure/kubernetes/README.md).
 
-**Principe** : Traefik (ingress K3s) est le point d'entrée HTTPS direct du VPS, en `LoadBalancer` natif sur les ports 80/443. `cert-manager` gère l'émission et le renouvellement automatique des certificats Let's Encrypt (challenge `HTTP-01` via l'ingress class `traefik`), pour tout `Ingress` annoté avec `cert-manager.io/cluster-issuer`.
+**Principe** : Traefik tourne en conteneur, seul service à publier des ports sur l'hôte (80/443). Il fait la terminaison TLS via son résolveur ACME intégré (Let's Encrypt, challenge HTTP-01) et route vers `api`/`frontend` par labels Docker — même logique que l'Ingress K8s d'avant, sans le socle K3s. Tout le reste (Postgres, Prometheus, Grafana, l'exporter) n'écoute que sur `127.0.0.1` : accès admin uniquement via tunnel SSH.
 
-DNS : `sporya.antoine-cuvilliez.fr` → `A` → `87.106.171.146` (IONOS).
+DNS (inchangé) : `sporya.antoine-cuvilliez.fr` → `A` → `87.106.171.146` (IONOS).
 
-Manifestes appliqués : [`infrastructure/kubernetes/namespace/namespace.yaml`](../../infrastructure/kubernetes/namespace/namespace.yaml), [`infrastructure/kubernetes/config/cert-manager.yaml`](../../infrastructure/kubernetes/config/cert-manager.yaml), [`infrastructure/kubernetes/config/letsencrypt-issuers.yaml`](../../infrastructure/kubernetes/config/letsencrypt-issuers.yaml).
+### Provisionner le VPS neuf (une seule fois)
 
-## Déploiement — API + Frontend (Phase 6)
+```bash
+# Docker Engine + plugin Compose (dépôt officiel, pas le paquet Ubuntu générique)
+curl -fsSL https://get.docker.com | sh
 
-Déploiement **manuel** (le CD automatisé arrive Phase 7). Registre : `ghcr.io` ([ADR-016](../adr/ADR-016-ghcr-registry.md)), images publiées par `api.yml` / `frontend.yml` sur push vers `main`. Rendre chaque package public une fois poussé (Settings du package sur GitHub) — sinon K3s ne peut pas le tirer sans `imagePullSecret`.
+# Swapfile 2Gi (mesure de stabilité indépendante de K3s, toujours pertinente
+# vu la RAM — voir #dimensionnement-mémoire ci-dessous)
+fallocate -l 2G /swapfile
+chmod 600 /swapfile
+mkswap /swapfile
+swapon /swapfile
+echo '/swapfile none swap sw 0 0' >> /etc/fstab
 
-1. **Secret Postgres** (une seule fois) :
+mkdir -p /opt/sporya
+```
+
+### Déploiement — API + Frontend
+
+Déploiement **manuel** (le CD automatisé, Phase 7, est un chantier séparé). Registre : `ghcr.io` ([ADR-016](../adr/ADR-016-ghcr-registry.md)), images publiées par `api.yml` / `frontend.yml` sur push vers `main`. Rendre chaque package public une fois poussé (Settings du package sur GitHub) — sinon `docker compose pull` échoue sans authentification.
+
+1. Copier sur le VPS (`/opt/sporya/`) : [`infrastructure/docker/docker-compose.prod.yml`](../../infrastructure/docker/docker-compose.prod.yml) et [`infrastructure/monitoring/`](../../infrastructure/monitoring/) (chemins relatifs utilisés par le compose pour Prometheus/Grafana). Pas besoin de cloner tout le repo.
+2. Créer le vrai `.env` à côté du compose, à partir de [`infrastructure/docker/.env.prod.example`](../../infrastructure/docker/.env.prod.example) — **jamais** commité. Génération de la paire JWT de prod (jamais celle de dev) documentée dans [`backend/api/README.md`](../../backend/api/README.md#clés-jwt-rs256).
+3. Premier déploiement, résolveur ACME **staging** (déjà la valeur par défaut dans `docker-compose.prod.yml`, ligne `caserver`) pour éviter le rate limit Let's Encrypt pendant la mise au point :
    ```bash
-   kubectl create secret generic postgres-credentials --namespace sporya \
-     --from-literal=POSTGRES_USER=sporya \
-     --from-literal=POSTGRES_PASSWORD='<mot-de-passe-généré>' \
-     --from-literal=POSTGRES_DB=sporya
+   docker compose -f docker-compose.prod.yml pull
+   docker compose -f docker-compose.prod.yml up -d
+   docker compose -f docker-compose.prod.yml logs -f traefik   # confirmer l'émission du certificat (invalide en staging, normal)
    ```
-2. **Postgres** : `kubectl apply -f infrastructure/kubernetes/postgres/`
-3. **Secret clés JWT** (une seule fois, jamais la paire de dev de `.env.example`) — voir [`backend/api/README.md`](../../backend/api/README.md#clés-jwt-rs256) pour générer la paire :
+4. Une fois le flux validé sans erreur, retirer la ligne `--certificatesresolvers.letsencrypt.acme.caserver=...` (staging) du service `traefik`, puis :
    ```bash
-   kubectl create secret generic auth-service-jwt-keys --namespace sporya \
-     --from-literal=JWT_PRIVATE_KEY_BASE64="$(base64 -w0 private.pem)" \
-     --from-literal=JWT_PUBLIC_KEY_BASE64="$(base64 -w0 public.pem)"
+   docker compose -f docker-compose.prod.yml up -d --force-recreate traefik
    ```
-4. **API** : éditer le tag `<SHA>` dans [`infrastructure/kubernetes/api/deployment.yaml`](../../infrastructure/kubernetes/api/deployment.yaml), puis `kubectl apply -f infrastructure/kubernetes/api/`
-5. **Frontend** : éditer le tag `<SHA>` dans [`infrastructure/kubernetes/frontend/deployment.yaml`](../../infrastructure/kubernetes/frontend/deployment.yaml), puis `kubectl apply -f infrastructure/kubernetes/frontend/`
-6. **Ingress + TLS** : `kubectl apply -f infrastructure/kubernetes/ingress/` — `letsencrypt-staging` d'abord pour un nouveau host (voir [ADR-015](../adr/ADR-015-traefik-entree-directe.md)), `letsencrypt-prod` une fois validé (déjà le cas ici, `sporya.antoine-cuvilliez.fr` a un certificat prod valide).
-7. **Vérifier** :
+5. **Vérifier** :
    ```bash
+   curl -I https://sporya.antoine-cuvilliez.fr/                        # frontend, certificat prod valide
    curl -X POST https://sporya.antoine-cuvilliez.fr/api/v1/auth/register \
      -H 'Content-Type: application/json' \
      -d '{"email":"test@sporya.local","password":"correct-horse-battery"}'
-   curl -I https://sporya.antoine-cuvilliez.fr/   # frontend
    ```
 
-Premier déploiement (squelette minimal) validé le 12/08/2026 : `200` avec certificat Let's Encrypt de production.
+Redéployer une nouvelle version = changer `IMAGE_TAG` dans le `.env` du VPS puis reprendre à l'étape 3 (`pull` + `up -d`, sans toucher au reste).
 
-**Renommage `auth-service` → `api`** ([ADR-017](../adr/ADR-017-monolithe-modulaire.md), 2026-08-14) : le prochain déploiement doit publier une image `ghcr.io/antoinecvlz/api` (nouveau nom, `service_path: backend/api` dans la CI) puis appliquer les nouveaux manifestes `infrastructure/kubernetes/api/` et `infrastructure/kubernetes/ingress/api.yaml`. Les anciennes ressources K8s ne sont **pas** supprimées automatiquement par `kubectl apply` sous un nouveau nom — nettoyer à la main une fois le nouveau déploiement validé :
-```bash
-kubectl delete deployment auth-service --namespace sporya
-kubectl delete service auth-service --namespace sporya
-kubectl delete ingress auth-service --namespace sporya
-```
-Le Secret `auth-service-jwt-keys` n'est **pas** concerné par ce nettoyage : il reste utilisé tel quel par le déploiement `api` (voir étape 3 ci-dessus).
+Le VPS étant reparti de zéro, il n'y a pas de données à migrer depuis l'ancien déploiement K3s (Postgres ne contenait que des données de test Phase 6).
 
 ## Dimensionnement mémoire
 
-Le VPS a **1.8 Gi de RAM au total** (pas d'upgrade prévu pour l'instant) — déjà partagés entre K3s (Traefik, cert-manager, coredns...), Postgres et l'application. Le 12/08/2026, un rolling deploy a fait tourner brièvement deux JVM Auth Service en même temps sous un système déjà en tension (aucun bug applicatif — démarrage normal, juste ~37s au lieu de quelques secondes), ce qui a fait basculer le VPS en situation de swap thrashing (load average 40+, SSH quasi inutilisable). C'est cet épisode qui a motivé le passage au monolithe modulaire ([ADR-017](../adr/ADR-017-monolithe-modulaire.md)) : une seule JVM à faire tourner, quel que soit le nombre de modules métier, plutôt qu'une par service. Un swapfile de 2 Gi a été ajouté comme filet de sécurité (`/swapfile`, persistant via `/etc/fstab`), mais la vraie marge de manœuvre vient de contraindre la JVM explicitement plutôt que de laisser les heuristiques par défaut décider :
+Le VPS a **1.8 Gi de RAM au total** (pas d'upgrade prévu pour l'instant). Le 12/08/2026 (ancien déploiement K3s), un rolling deploy a fait tourner brièvement deux JVM Auth Service en même temps sous un système déjà en tension (aucun bug applicatif — démarrage normal, juste ~37s au lieu de quelques secondes), ce qui a fait basculer le VPS en situation de swap thrashing (load average 40+, SSH quasi inutilisable). C'est cet épisode qui a motivé à la fois le passage au monolithe modulaire ([ADR-017](../adr/ADR-017-monolithe-modulaire.md)) et, une fois le VPS réinitialisé, l'abandon du socle K3s ([ADR-018](../adr/ADR-018-docker-compose-vps.md)) : une seule JVM à faire tourner, sans plus payer l'overhead d'orchestration en plus. Le swapfile de 2 Gi (voir provisioning ci-dessus) reste un filet de sécurité, mais la vraie marge de manœuvre vient de contraindre la JVM explicitement plutôt que de laisser les heuristiques par défaut décider :
 
 - **`JAVA_TOOL_OPTIONS`** fixé dans le `Dockerfile` de `backend/api` : `-Xms192m -Xmx192m -XX:MaxMetaspaceSize=96m -XX:MaxDirectMemorySize=32m -XX:ReservedCodeCacheSize=48m -XX:+UseSerialGC` (SerialGC : moins d'overhead mémoire que G1 pour un petit tas mono-instance à faible trafic).
 - **`server.tomcat.threads.max: 20`** dans `application.yml` (défaut Tomcat = 200, chaque thread réserve de la pile même inactif).
-- **Ressources K8s réduites en conséquence** (`infrastructure/kubernetes/api/deployment.yaml`) : `requests: 300Mi` / `limits: 400Mi` (avant : 384/512Mi), avec marge au-dessus du plafond JVM (~368Mi) pour l'overhead natif du process.
-- **Probes plus tolérantes** (`initialDelaySeconds`/`failureThreshold` généreux) pour qu'un démarrage lent sous pression CPU ne déclenche pas un cycle kill-restart qui aggrave la situation, comme observé le 12/08/2026.
+- **`mem_limit: 400m`** sur le service `api` de `docker-compose.prod.yml`, avec marge au-dessus du plafond JVM (~368Mi) pour l'overhead natif du process.
+- **`healthcheck` généreux** (`start_period: 60s`, `retries: 6`) pour qu'un démarrage lent sous pression CPU ne déclenche pas un cycle kill-restart qui aggrave la situation, comme observé le 12/08/2026.
 
 Ce tuning reste le même quel que soit le nombre de modules ajoutés à `backend/api` (Club, Match, ...) — un seul déployable à surveiller. Avant d'ajouter un module conséquent, revérifier `free -h` sur le VPS.
 
