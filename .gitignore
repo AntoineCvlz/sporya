@@ -17,6 +17,8 @@ desktop.ini
 !.env.prod.example
 *.pem
 *.key
+id_*
+*_deploy_key*
 
 # --- Java / Maven / Gradle ---
 target/
