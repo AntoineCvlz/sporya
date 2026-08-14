@@ -12,10 +12,19 @@ name: sporya
 
 services:
   traefik:
-    image: traefik:v3.3
+    # v3.3 échoue contre un daemon Docker récent (Engine installé via
+    # get.docker.com, API 1.55) : "client version 1.24 is too old, minimum
+    # supported API version is 1.40" — bug de négociation d'API du client
+    # Docker embarqué dans cette version, corrigé dans une release plus
+    # récente. Vérifié en prod le 14/08/2026 (`traefik:latest` résolvait
+    # alors sur 3.7.10) — épinglé explicitement plutôt que de garder `latest`.
+    image: traefik:v3.7.10
     container_name: sporya-traefik
     restart: unless-stopped
     command:
+      # Défaut = ERROR, ce qui masque même les événements normaux (ex.
+      # certificat obtenu) — utile pour le diagnostic ACME.
+      - --log.level=INFO
       - --providers.docker=true
       - --providers.docker.exposedbydefault=false
       - --entrypoints.web.address=:80
@@ -25,10 +34,9 @@ services:
       - --certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL:?ACME_EMAIL manquant dans .env}
       - --certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json
       - --certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web
-      # Retirer cette ligne une fois le certificat prod validé sans erreur
-      # (voir docs/deployment/README.md) — évite le rate limit Let's Encrypt
-      # pendant la mise au point.
-      - --certificatesresolvers.letsencrypt.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory
+      # CA prod (par défaut si non précisé) — le flux a été validé contre le
+      # CA staging le 14/08/2026 (émission confirmée, voir docs/deployment/
+      # README.md) avant de passer en prod ici.
     ports:
       - "80:80"
       - "443:443"
