@@ -47,7 +47,8 @@ jobs:
           # jamais utilisée pour un vrai déploiement (voir .env.prod.example).
           cat > .env <<'EOF'
           ACME_EMAIL=ci@example.com
-          IMAGE_TAG=ci-test
+          API_IMAGE_TAG=ci-test
+          FRONTEND_IMAGE_TAG=ci-test
           POSTGRES_PASSWORD=ci-test
           GRAFANA_ADMIN_PASSWORD=ci-test
           JWT_PRIVATE_KEY_BASE64=ci-test

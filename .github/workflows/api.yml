@@ -17,3 +17,20 @@ jobs:
       packages: write
     with:
       service_path: backend/api
+
+  deploy:
+    name: Deploy to VPS
+    needs: ci
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      # deploy.sh (sur le VPS) ne déploie que le service api — jamais frontend
+      # au même SHA, voir ADR-019 : api.yml et frontend.yml se déclenchent
+      # indépendamment selon le chemin modifié.
+      - uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: deploy
+          key: ${{ secrets.VPS_DEPLOY_SSH_KEY }}
+          fingerprint: ${{ secrets.VPS_HOST_FINGERPRINT }}
+          script: "api ${{ github.sha }}"

@@ -67,3 +67,20 @@ jobs:
       - name: Push image
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: docker push ${{ steps.meta.outputs.image }}
+
+  deploy:
+    name: Deploy to VPS
+    needs: build-and-test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      # deploy.sh (sur le VPS) ne déploie que le service frontend — jamais
+      # api au même SHA, voir ADR-019 : api.yml et frontend.yml se
+      # déclenchent indépendamment selon le chemin modifié.
+      - uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: deploy
+          key: ${{ secrets.VPS_DEPLOY_SSH_KEY }}
+          fingerprint: ${{ secrets.VPS_HOST_FINGERPRINT }}
+          script: "frontend ${{ github.sha }}"

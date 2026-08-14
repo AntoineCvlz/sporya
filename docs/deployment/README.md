@@ -53,7 +53,7 @@ Déploiement **manuel** (le CD automatisé, Phase 7, est un chantier séparé). 
      -d '{"email":"test@sporya.local","password":"correct-horse-battery"}'
    ```
 
-Redéployer une nouvelle version = changer `IMAGE_TAG` dans le `.env` du VPS puis reprendre à l'étape 3 (`pull` + `up -d`, sans toucher au reste).
+Redéployer une nouvelle version = changer `API_IMAGE_TAG` et/ou `FRONTEND_IMAGE_TAG` dans le `.env` du VPS (les deux services ont chacun leur tag, voir #cd-phase-7) puis `pull`/`up -d` sur le(s) service(s) concerné(s) uniquement, sans toucher au reste. En pratique, ce n'est plus fait à la main depuis la mise en place de la CD.
 
 Le VPS étant reparti de zéro, il n'y a pas de données à migrer depuis l'ancien déploiement K3s (Postgres ne contenait que des données de test Phase 6).
 
@@ -70,7 +70,38 @@ Ce tuning reste le même quel que soit le nombre de modules ajoutés à `backend
 
 ## CD (Phase 7)
 
-Pas encore en place — pipeline de déploiement automatisé, stratégie de rolling update et de rollback, à documenter à ce moment-là.
+En place depuis [ADR-019](../adr/ADR-019-cd-ssh-github-actions.md) : `api.yml` et `frontend.yml` déploient chacun leur propre service sur le VPS par SSH, juste après avoir publié son image sur `ghcr.io` (push vers `main` uniquement) — jamais un déploiement combiné, puisque les deux workflows se déclenchent indépendamment selon le chemin modifié (`backend/api/**` / `frontend/**`).
+
+**Mécanisme** : le job `deploy` de chaque workflow se connecte en SSH à un utilisateur dédié `deploy` (non-root, groupe `docker`) dont la clé CI est restreinte par une commande forcée dans `authorized_keys` — elle ne peut exécuter que [`infrastructure/docker/deploy.sh`](../../infrastructure/docker/deploy.sh), jamais un shell libre. Ce script lit le service et le SHA demandés (`$SSH_ORIGINAL_COMMAND`), valide strictement le format, met à jour `API_IMAGE_TAG` ou `FRONTEND_IMAGE_TAG` dans le `.env` du VPS, puis `pull`/`up -d` uniquement ce service.
+
+**Provisioning requis sur le VPS** (une seule fois) :
+```bash
+adduser --system --group --shell /bin/bash deploy
+usermod -aG docker deploy
+chmod +x /opt/sporya/infrastructure/docker/deploy.sh   # après l'avoir copié comme le reste de infrastructure/docker/
+
+# Depuis ton poste : génère une paire de clés dédiée à la CI (jamais ta clé perso)
+ssh-keygen -t ed25519 -f sporya_deploy_key -N ""
+ssh-copy-id -i sporya_deploy_key.pub deploy@87.106.171.146   # ou copie manuelle dans ~deploy/.ssh/authorized_keys
+```
+
+Puis, sur le VPS, préfixer la ligne ajoutée dans `~deploy/.ssh/authorized_keys` par la commande forcée :
+```
+command="/opt/sporya/infrastructure/docker/deploy.sh",no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty ssh-ed25519 AAAA... github-actions-deploy
+```
+
+**Secrets GitHub** (Settings → Secrets and variables → Actions) :
+- `VPS_HOST` = `87.106.171.146`
+- `VPS_DEPLOY_SSH_KEY` = contenu de `sporya_deploy_key` (clé **privée**, générée ci-dessus)
+- `VPS_HOST_FINGERPRINT` = sortie de `ssh-keyscan -t ed25519 87.106.171.146`
+
+**Rollback manuel** (pas d'automatisation en V1, voir ADR-019) : identifier le SHA du dernier déploiement sain (Actions → run précédent), puis sur le VPS :
+```bash
+cd /opt/sporya/infrastructure/docker
+sed -i "s/^API_IMAGE_TAG=.*/API_IMAGE_TAG=<ancien-sha>/" .env   # ou FRONTEND_IMAGE_TAG
+docker compose -f docker-compose.prod.yml pull api              # ou frontend
+docker compose -f docker-compose.prod.yml up -d api
+```
 
 ## Sauvegardes (Phase 16)
 

@@ -7,6 +7,12 @@
 # Usage sur le VPS (voir docs/deployment/README.md) :
 #   docker compose -f docker-compose.prod.yml pull
 #   docker compose -f docker-compose.prod.yml up -d
+#
+# En temps normal, `api` et `frontend` sont redéployés indépendamment par
+# deploy.sh (CD, ADR-019) — chacun son propre tag (API_IMAGE_TAG /
+# FRONTEND_IMAGE_TAG), jamais un tag partagé : api.yml et frontend.yml ne se
+# déclenchent que si leur propre dossier change, donc un commit qui ne
+# touche que l'un des deux ne republie pas d'image pour l'autre au même SHA.
 
 name: sporya
 
@@ -82,7 +88,7 @@ services:
       - sporya-net
 
   api:
-    image: ghcr.io/antoinecvlz/api:${IMAGE_TAG:?IMAGE_TAG manquant dans .env}
+    image: ghcr.io/antoinecvlz/api:${API_IMAGE_TAG:?API_IMAGE_TAG manquant dans .env}
     container_name: sporya-api
     restart: unless-stopped
     environment:
@@ -117,7 +123,7 @@ services:
       - sporya-net
 
   frontend:
-    image: ghcr.io/antoinecvlz/frontend:${IMAGE_TAG:?IMAGE_TAG manquant dans .env}
+    image: ghcr.io/antoinecvlz/frontend:${FRONTEND_IMAGE_TAG:?FRONTEND_IMAGE_TAG manquant dans .env}
     container_name: sporya-frontend
     restart: unless-stopped
     depends_on:
