@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice
-class ApiExceptionHandler {
+class ClubApiExceptionHandler {
 
   @ExceptionHandler(ClubNotFoundException.class)
   ResponseEntity<ErrorResponse> handleClubNotFound(ClubNotFoundException ex) {
