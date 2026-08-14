@@ -60,7 +60,8 @@ class ClubFlowIT {
         restTemplate.exchange(
             "/api/v1/clubs",
             HttpMethod.POST,
-            new HttpEntity<>(new CreateClubRequest("FC Sporya", "France"), authHeaders(accessToken)),
+            new HttpEntity<>(
+                new CreateClubRequest("FC Sporya", "France"), authHeaders(accessToken)),
             ClubResponse.class);
     return response.getBody().id();
   }
@@ -83,7 +84,8 @@ class ClubFlowIT {
         restTemplate.exchange(
             "/api/v1/clubs",
             HttpMethod.POST,
-            new HttpEntity<>(new CreateClubRequest("FC Sporya", "France"), authHeaders(accessToken)),
+            new HttpEntity<>(
+                new CreateClubRequest("FC Sporya", "France"), authHeaders(accessToken)),
             ClubResponse.class);
     assertThat(createResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
     assertThat(createResponse.getBody()).isNotNull();

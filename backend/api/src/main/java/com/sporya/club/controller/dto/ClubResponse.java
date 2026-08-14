@@ -4,7 +4,8 @@ import com.sporya.club.domain.Club;
 import java.time.Instant;
 import java.util.UUID;
 
-public record ClubResponse(UUID id, String name, String country, UUID createdBy, Instant createdAt) {
+public record ClubResponse(
+    UUID id, String name, String country, UUID createdBy, Instant createdAt) {
 
   public static ClubResponse from(Club club) {
     return new ClubResponse(
