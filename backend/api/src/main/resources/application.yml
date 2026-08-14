@@ -21,7 +21,7 @@ spring:
       hibernate:
         default_schema: auth
   flyway:
-    schemas: auth
+    schemas: auth,club
     default-schema: auth
     create-schemas: true
 

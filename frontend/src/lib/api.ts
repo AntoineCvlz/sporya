@@ -1,7 +1,6 @@
 // Chemin relatif — même valeur en local (proxy Vite, voir vite.config.ts) et
 // en prod (routage Ingress, voir infrastructure/kubernetes/ingress/). Pas de
 // configuration d'URL de base ni de CORS à gérer.
-const AUTH_BASE = '/api/v1/auth'
 
 export class ApiError extends Error {
   status: number
@@ -22,7 +21,7 @@ async function parseErrorMessage(response: Response): Promise<string> {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${AUTH_BASE}${path}`, {
+  const response = await fetch(path, {
     ...init,
     headers: {
       'Content-Type': 'application/json',
@@ -33,6 +32,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     throw new ApiError(await parseErrorMessage(response), response.status)
   }
   return (await response.json()) as T
+}
+
+function authHeaders(accessToken: string): HeadersInit {
+  return { Authorization: `Bearer ${accessToken}` }
 }
 
 export interface UserResponse {
@@ -47,21 +50,105 @@ export interface AuthResponse {
 }
 
 export function register(email: string, password: string): Promise<UserResponse> {
-  return request<UserResponse>('/register', {
+  return request<UserResponse>('/api/v1/auth/register', {
     method: 'POST',
     body: JSON.stringify({ email, password }),
   })
 }
 
 export function login(email: string, password: string): Promise<AuthResponse> {
-  return request<AuthResponse>('/login', {
+  return request<AuthResponse>('/api/v1/auth/login', {
     method: 'POST',
     body: JSON.stringify({ email, password }),
   })
 }
 
 export function me(accessToken: string): Promise<UserResponse> {
-  return request<UserResponse>('/me', {
-    headers: { Authorization: `Bearer ${accessToken}` },
+  return request<UserResponse>('/api/v1/auth/me', { headers: authHeaders(accessToken) })
+}
+
+export interface ClubResponse {
+  id: string
+  name: string
+  country: string
+  createdBy: string
+  createdAt: string
+}
+
+export interface TeamResponse {
+  id: string
+  name: string
+  clubId: string
+  createdAt: string
+}
+
+export interface PlayerResponse {
+  id: string
+  name: string
+  birthdate: string
+  position: string
+  teamId: string
+  createdAt: string
+}
+
+export function listClubs(accessToken: string): Promise<ClubResponse[]> {
+  return request<ClubResponse[]>('/api/v1/clubs', { headers: authHeaders(accessToken) })
+}
+
+export function createClub(
+  accessToken: string,
+  name: string,
+  country: string,
+): Promise<ClubResponse> {
+  return request<ClubResponse>('/api/v1/clubs', {
+    method: 'POST',
+    headers: authHeaders(accessToken),
+    body: JSON.stringify({ name, country }),
+  })
+}
+
+export function getClub(accessToken: string, clubId: string): Promise<ClubResponse> {
+  return request<ClubResponse>(`/api/v1/clubs/${clubId}`, { headers: authHeaders(accessToken) })
+}
+
+export function listTeams(accessToken: string, clubId: string): Promise<TeamResponse[]> {
+  return request<TeamResponse[]>(`/api/v1/clubs/${clubId}/teams`, {
+    headers: authHeaders(accessToken),
+  })
+}
+
+export function createTeam(
+  accessToken: string,
+  clubId: string,
+  name: string,
+): Promise<TeamResponse> {
+  return request<TeamResponse>(`/api/v1/clubs/${clubId}/teams`, {
+    method: 'POST',
+    headers: authHeaders(accessToken),
+    body: JSON.stringify({ name }),
+  })
+}
+
+export function getTeam(accessToken: string, teamId: string): Promise<TeamResponse> {
+  return request<TeamResponse>(`/api/v1/teams/${teamId}`, { headers: authHeaders(accessToken) })
+}
+
+export function listPlayers(accessToken: string, teamId: string): Promise<PlayerResponse[]> {
+  return request<PlayerResponse[]>(`/api/v1/teams/${teamId}/players`, {
+    headers: authHeaders(accessToken),
+  })
+}
+
+export function createPlayer(
+  accessToken: string,
+  teamId: string,
+  name: string,
+  birthdate: string,
+  position: string,
+): Promise<PlayerResponse> {
+  return request<PlayerResponse>(`/api/v1/teams/${teamId}/players`, {
+    method: 'POST',
+    headers: authHeaders(accessToken),
+    body: JSON.stringify({ name, birthdate, position }),
   })
 }

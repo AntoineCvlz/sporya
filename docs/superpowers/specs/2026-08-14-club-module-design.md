@@ -55,6 +55,7 @@ Toutes sous Bearer JWT (401 si absent/invalide, comportement déjà en place) :
 | GET | `/api/v1/clubs/{clubId}` | — | 200, `ClubResponse` | 404 `ClubNotFoundException` |
 | POST | `/api/v1/clubs/{clubId}/teams` | `{name}` | 201, `TeamResponse` | 400 validation, 404 club inconnu |
 | GET | `/api/v1/clubs/{clubId}/teams` | — | 200, `TeamResponse[]` | 404 club inconnu |
+| GET | `/api/v1/teams/{teamId}` | — | 200, `TeamResponse` | 404 `TeamNotFoundException` |
 | POST | `/api/v1/teams/{teamId}/players` | `{name, birthdate, position}` | 201, `PlayerResponse` | 400 validation, 404 équipe inconnue |
 | GET | `/api/v1/teams/{teamId}/players` | — | 200, `PlayerResponse[]` | 404 équipe inconnue |
 
@@ -72,7 +73,7 @@ Trois nouvelles pages (`frontend/src/pages/`), même patterns visuels que Login/
 
 - **`ClubsPage.tsx`** (`/clubs`) — liste des clubs (`GET /clubs`) + formulaire de création (`POST /clubs`), chaque club de la liste est un lien vers `/clubs/:clubId`.
 - **`ClubDetailPage.tsx`** (`/clubs/:clubId`) — infos du club + liste de ses équipes (`GET /clubs/{id}/teams`) + formulaire de création d'équipe (`POST /clubs/{id}/teams`), chaque équipe est un lien vers `/teams/:teamId`.
-- **`TeamDetailPage.tsx`** (`/teams/:teamId`) — infos de l'équipe + liste de ses joueurs (`GET /teams/{id}/players`) + formulaire d'ajout de joueur (`POST /teams/{id}/players`).
+- **`TeamDetailPage.tsx`** (`/teams/:teamId`) — infos de l'équipe (`GET /teams/{id}`) + liste de ses joueurs (`GET /teams/{id}/players`) + formulaire d'ajout de joueur (`POST /teams/{id}/players`).
 
 Toutes sous `ProtectedRoute` (déjà en place dans `App.tsx`), routes ajoutées à côté de `/dashboard`. `DashboardPage.tsx` reçoit un lien "Voir les clubs" vers `/clubs`.
 

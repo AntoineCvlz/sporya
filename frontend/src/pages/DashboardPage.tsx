@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 
 import { me } from '@/lib/api'
@@ -39,6 +39,9 @@ export function DashboardPage() {
               <p className="font-medium">{query.data.email}</p>
             </div>
           )}
+          <Button asChild variant="secondary">
+            <Link to="/clubs">Voir les clubs</Link>
+          </Button>
           <Button variant="outline" onClick={handleLogout}>
             Se déconnecter
           </Button>
