@@ -32,54 +32,59 @@ export function RegisterPage() {
   }
 
   return (
-    <div className="flex min-h-svh items-center justify-center p-6">
-      <Card className="w-full max-w-sm">
-        <CardHeader>
-          <CardTitle>Créer un compte</CardTitle>
-          <CardDescription>Rejoins Sporya pour suivre tes performances.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="password">Mot de passe</Label>
-              <Input
-                id="password"
-                type="password"
-                required
-                minLength={8}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
-            {mutation.isError && (
-              <p className="text-sm text-destructive">
-                {mutation.error instanceof ApiError
-                  ? mutation.error.message
-                  : 'Une erreur est survenue.'}
+    <div className="relative flex min-h-svh items-center justify-center overflow-hidden p-6">
+      <div className="bg-glow pointer-events-none absolute inset-0" />
+      <div className="bg-grid pointer-events-none absolute inset-0" />
+      <div className="relative w-full max-w-sm">
+        <p className="mb-8 text-center text-2xl font-semibold tracking-tight">Sporya</p>
+        <Card>
+          <CardHeader>
+            <CardTitle>Créer un compte</CardTitle>
+            <CardDescription>Rejoins Sporya pour suivre tes performances.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="password">Mot de passe</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  required
+                  minLength={8}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
+              {mutation.isError && (
+                <p className="text-sm text-destructive">
+                  {mutation.error instanceof ApiError
+                    ? mutation.error.message
+                    : 'Une erreur est survenue.'}
+                </p>
+              )}
+              <Button type="submit" disabled={mutation.isPending}>
+                {mutation.isPending ? 'Création…' : 'Créer mon compte'}
+              </Button>
+              <p className="text-center text-sm text-muted-foreground">
+                Déjà un compte ?{' '}
+                <Link to="/login" className="underline underline-offset-4">
+                  Se connecter
+                </Link>
               </p>
-            )}
-            <Button type="submit" disabled={mutation.isPending}>
-              {mutation.isPending ? 'Création…' : 'Créer mon compte'}
-            </Button>
-            <p className="text-center text-sm text-muted-foreground">
-              Déjà un compte ?{' '}
-              <Link to="/login" className="underline underline-offset-4">
-                Se connecter
-              </Link>
-            </p>
-          </form>
-        </CardContent>
-      </Card>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }

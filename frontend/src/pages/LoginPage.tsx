@@ -29,53 +29,58 @@ export function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-svh items-center justify-center p-6">
-      <Card className="w-full max-w-sm">
-        <CardHeader>
-          <CardTitle>Se connecter</CardTitle>
-          <CardDescription>Accède à ton tableau de bord Sporya.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="password">Mot de passe</Label>
-              <Input
-                id="password"
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
-            {mutation.isError && (
-              <p className="text-sm text-destructive">
-                {mutation.error instanceof ApiError
-                  ? mutation.error.message
-                  : 'Une erreur est survenue.'}
+    <div className="relative flex min-h-svh items-center justify-center overflow-hidden p-6">
+      <div className="bg-glow pointer-events-none absolute inset-0" />
+      <div className="bg-grid pointer-events-none absolute inset-0" />
+      <div className="relative w-full max-w-sm">
+        <p className="mb-8 text-center text-2xl font-semibold tracking-tight">Sporya</p>
+        <Card>
+          <CardHeader>
+            <CardTitle>Se connecter</CardTitle>
+            <CardDescription>Accède à ton tableau de bord Sporya.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="password">Mot de passe</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
+              {mutation.isError && (
+                <p className="text-sm text-destructive">
+                  {mutation.error instanceof ApiError
+                    ? mutation.error.message
+                    : 'Une erreur est survenue.'}
+                </p>
+              )}
+              <Button type="submit" disabled={mutation.isPending}>
+                {mutation.isPending ? 'Connexion…' : 'Se connecter'}
+              </Button>
+              <p className="text-center text-sm text-muted-foreground">
+                Pas encore de compte ?{' '}
+                <Link to="/register" className="underline underline-offset-4">
+                  Créer un compte
+                </Link>
               </p>
-            )}
-            <Button type="submit" disabled={mutation.isPending}>
-              {mutation.isPending ? 'Connexion…' : 'Se connecter'}
-            </Button>
-            <p className="text-center text-sm text-muted-foreground">
-              Pas encore de compte ?{' '}
-              <Link to="/register" className="underline underline-offset-4">
-                Créer un compte
-              </Link>
-            </p>
-          </form>
-        </CardContent>
-      </Card>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }
