@@ -3,6 +3,7 @@ package com.sporya.club.application;
 import com.sporya.club.controller.dto.CreatePlayerRequest;
 import com.sporya.club.controller.dto.PlayerResponse;
 import com.sporya.club.domain.Player;
+import com.sporya.club.domain.PlayerNotFoundException;
 import com.sporya.club.domain.TeamNotFoundException;
 import com.sporya.club.infrastructure.persistence.PlayerRepository;
 import com.sporya.club.infrastructure.persistence.TeamRepository;
@@ -37,5 +38,14 @@ public class PlayerService {
       throw new TeamNotFoundException(teamId);
     }
     return playerRepository.findByTeamId(teamId).stream().map(PlayerResponse::from).toList();
+  }
+
+  @Transactional(readOnly = true)
+  public PlayerResponse get(UUID playerId) {
+    Player player =
+        playerRepository
+            .findById(playerId)
+            .orElseThrow(() -> new PlayerNotFoundException(playerId));
+    return PlayerResponse.from(player);
   }
 }

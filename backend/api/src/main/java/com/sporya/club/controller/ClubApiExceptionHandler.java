@@ -3,6 +3,7 @@ package com.sporya.club.controller;
 import com.sporya.club.controller.dto.ErrorResponse;
 import com.sporya.club.domain.ClubAccessDeniedException;
 import com.sporya.club.domain.ClubNotFoundException;
+import com.sporya.club.domain.PlayerNotFoundException;
 import com.sporya.club.domain.TeamNotFoundException;
 import java.util.stream.Collectors;
 import org.springframework.http.HttpStatus;
@@ -21,6 +22,11 @@ class ClubApiExceptionHandler {
 
   @ExceptionHandler(TeamNotFoundException.class)
   ResponseEntity<ErrorResponse> handleTeamNotFound(TeamNotFoundException ex) {
+    return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorResponse(ex.getMessage()));
+  }
+
+  @ExceptionHandler(PlayerNotFoundException.class)
+  ResponseEntity<ErrorResponse> handlePlayerNotFound(PlayerNotFoundException ex) {
     return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorResponse(ex.getMessage()));
   }
 
