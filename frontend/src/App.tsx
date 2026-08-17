@@ -7,6 +7,9 @@ import { DashboardPage } from '@/pages/DashboardPage'
 import { ClubsPage } from '@/pages/ClubsPage'
 import { ClubDetailPage } from '@/pages/ClubDetailPage'
 import { TeamDetailPage } from '@/pages/TeamDetailPage'
+import { CompetitionsPage } from '@/pages/CompetitionsPage'
+import { MatchesPage } from '@/pages/MatchesPage'
+import { MatchDetailPage } from '@/pages/MatchDetailPage'
 
 export function App() {
   return (
@@ -43,6 +46,30 @@ export function App() {
         element={
           <ProtectedRoute>
             <TeamDetailPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/competitions"
+        element={
+          <ProtectedRoute>
+            <CompetitionsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/matches"
+        element={
+          <ProtectedRoute>
+            <MatchesPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/matches/:matchId"
+        element={
+          <ProtectedRoute>
+            <MatchDetailPage />
           </ProtectedRoute>
         }
       />
