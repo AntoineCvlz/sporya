@@ -1,5 +1,7 @@
 package com.sporya.club.application;
 
+import com.sporya.auth.application.MembershipService;
+import com.sporya.auth.domain.Role;
 import com.sporya.club.controller.dto.ClubResponse;
 import com.sporya.club.controller.dto.CreateClubRequest;
 import com.sporya.club.domain.Club;
@@ -14,15 +16,19 @@ import org.springframework.transaction.annotation.Transactional;
 public class ClubService {
 
   private final ClubRepository clubRepository;
+  private final MembershipService membershipService;
 
-  public ClubService(ClubRepository clubRepository) {
+  public ClubService(ClubRepository clubRepository, MembershipService membershipService) {
     this.clubRepository = clubRepository;
+    this.membershipService = membershipService;
   }
 
   @Transactional
   public ClubResponse create(UUID createdBy, CreateClubRequest request) {
     Club club = new Club(request.name(), request.country(), createdBy);
-    return ClubResponse.from(clubRepository.save(club));
+    Club saved = clubRepository.save(club);
+    membershipService.grant(createdBy, saved.getId(), Role.ADMIN);
+    return ClubResponse.from(saved);
   }
 
   @Transactional(readOnly = true)

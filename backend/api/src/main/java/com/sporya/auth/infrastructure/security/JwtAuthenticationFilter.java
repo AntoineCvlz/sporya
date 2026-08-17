@@ -1,5 +1,7 @@
 package com.sporya.auth.infrastructure.security;
 
+import com.sporya.auth.domain.ClubRole;
+import com.sporya.auth.domain.Role;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
@@ -8,6 +10,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -33,7 +36,9 @@ class JwtAuthenticationFilter extends OncePerRequestFilter {
       try {
         Claims claims = jwtService.parseAndValidate(header.substring("Bearer ".length()));
         UUID userId = UUID.fromString(claims.getSubject());
-        var authentication = new UsernamePasswordAuthenticationToken(userId, null, List.of());
+        AuthenticatedUser authenticatedUser = new AuthenticatedUser(userId, parseMemberships(claims));
+        var authentication =
+            new UsernamePasswordAuthenticationToken(authenticatedUser, null, List.of());
         SecurityContextHolder.getContext().setAuthentication(authentication);
       } catch (JwtException | IllegalArgumentException ignored) {
         // Token absent/invalide/expiré -> requête traitée comme anonyme, rejetée plus loin
@@ -41,5 +46,17 @@ class JwtAuthenticationFilter extends OncePerRequestFilter {
       }
     }
     filterChain.doFilter(request, response);
+  }
+
+  @SuppressWarnings("unchecked")
+  private static List<ClubRole> parseMemberships(Claims claims) {
+    List<Map<String, Object>> raw = claims.get("memberships", List.class);
+    return raw.stream()
+        .map(
+            entry ->
+                new ClubRole(
+                    UUID.fromString((String) entry.get("clubId")),
+                    Role.valueOf((String) entry.get("role"))))
+        .toList();
   }
 }

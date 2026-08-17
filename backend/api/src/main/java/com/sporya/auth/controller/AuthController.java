@@ -5,8 +5,8 @@ import com.sporya.auth.controller.dto.AuthResponse;
 import com.sporya.auth.controller.dto.LoginRequest;
 import com.sporya.auth.controller.dto.RegisterRequest;
 import com.sporya.auth.controller.dto.UserResponse;
+import com.sporya.auth.infrastructure.security.AuthenticatedUser;
 import jakarta.validation.Valid;
-import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -38,7 +38,7 @@ public class AuthController {
   }
 
   @GetMapping("/me")
-  public UserResponse me(@AuthenticationPrincipal UUID userId) {
-    return authenticationService.currentUser(userId);
+  public UserResponse me(@AuthenticationPrincipal AuthenticatedUser user) {
+    return authenticationService.currentUser(user.userId());
   }
 }

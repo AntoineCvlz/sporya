@@ -55,4 +55,12 @@ public class AuthenticationService {
         userRepository.findById(userId).orElseThrow(() -> new UserNotFoundException(userId));
     return UserResponse.from(user);
   }
+
+  @Transactional(readOnly = true)
+  public UUID findUserIdByEmail(String email) {
+    return userRepository
+        .findByEmail(email)
+        .map(User::getId)
+        .orElseThrow(() -> new UserNotFoundException(email));
+  }
 }

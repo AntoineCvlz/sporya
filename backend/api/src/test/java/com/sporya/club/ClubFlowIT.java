@@ -2,9 +2,13 @@ package com.sporya.club;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.sporya.auth.application.MembershipService;
 import com.sporya.auth.controller.dto.AuthResponse;
 import com.sporya.auth.controller.dto.LoginRequest;
 import com.sporya.auth.controller.dto.RegisterRequest;
+import com.sporya.auth.domain.ClubRole;
+import com.sporya.auth.domain.Role;
+import com.sporya.auth.infrastructure.security.JwtService;
 import com.sporya.club.controller.dto.ClubResponse;
 import com.sporya.club.controller.dto.CreateClubRequest;
 import com.sporya.club.controller.dto.CreatePlayerRequest;
@@ -37,6 +41,8 @@ class ClubFlowIT {
   static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16-alpine");
 
   @Autowired private TestRestTemplate restTemplate;
+  @Autowired private MembershipService membershipService;
+  @Autowired private JwtService jwtService;
 
   private String registerAndLogin() {
     String email = "coach+" + System.nanoTime() + "@sporya.test";
@@ -132,6 +138,15 @@ class ClubFlowIT {
         restTemplate.postForEntity(
             "/api/v1/clubs", new CreateClubRequest("FC Sporya", "France"), Void.class);
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+  }
+
+  @Test
+  void createClubGrantsCreatorAdminMembership() {
+    String accessToken = registerAndLogin();
+    UUID clubId = createClub(accessToken);
+    UUID userId = UUID.fromString(jwtService.parseAndValidate(accessToken).getSubject());
+
+    assertThat(membershipService.membershipsFor(userId)).contains(new ClubRole(clubId, Role.ADMIN));
   }
 
   @Test

@@ -2,10 +2,17 @@ package com.sporya.auth;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.sporya.auth.application.MembershipService;
 import com.sporya.auth.controller.dto.AuthResponse;
 import com.sporya.auth.controller.dto.LoginRequest;
 import com.sporya.auth.controller.dto.RegisterRequest;
 import com.sporya.auth.controller.dto.UserResponse;
+import com.sporya.auth.domain.Role;
+import com.sporya.auth.infrastructure.security.JwtService;
+import io.jsonwebtoken.Claims;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -29,6 +36,8 @@ class AuthFlowIT {
   static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16-alpine");
 
   @Autowired private TestRestTemplate restTemplate;
+  @Autowired private MembershipService membershipService;
+  @Autowired private JwtService jwtService;
 
   @Test
   void registerThenLoginThenFetchProtectedProfile() {
@@ -72,5 +81,29 @@ class AuthFlowIT {
     assertThat(meResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
     assertThat(meResponse.getBody()).isNotNull();
     assertThat(meResponse.getBody().email()).isEqualTo(email);
+  }
+
+  @Test
+  void loginTokenCarriesGrantedMemberships() {
+    String email = "coach+" + System.nanoTime() + "@sporya.test";
+    String password = "correct-horse-battery";
+
+    ResponseEntity<UserResponse> registerResponse =
+        restTemplate.postForEntity(
+            "/api/v1/auth/register", new RegisterRequest(email, password), UserResponse.class);
+    UUID userId = registerResponse.getBody().id();
+    UUID clubId = UUID.randomUUID();
+    membershipService.grant(userId, clubId, Role.COACH);
+
+    ResponseEntity<AuthResponse> loginResponse =
+        restTemplate.postForEntity(
+            "/api/v1/auth/login", new LoginRequest(email, password), AuthResponse.class);
+    Claims claims = jwtService.parseAndValidate(loginResponse.getBody().accessToken());
+
+    @SuppressWarnings("unchecked")
+    List<Map<String, Object>> memberships = claims.get("memberships", List.class);
+    assertThat(memberships).hasSize(1);
+    assertThat(memberships.get(0).get("clubId")).isEqualTo(clubId.toString());
+    assertThat(memberships.get(0).get("role")).isEqualTo("COACH");
   }
 }

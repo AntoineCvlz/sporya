@@ -1,5 +1,6 @@
 package com.sporya.club.controller;
 
+import com.sporya.auth.infrastructure.security.AuthenticatedUser;
 import com.sporya.club.application.ClubService;
 import com.sporya.club.controller.dto.ClubResponse;
 import com.sporya.club.controller.dto.CreateClubRequest;
@@ -29,8 +30,8 @@ public class ClubController {
   @PostMapping
   @ResponseStatus(HttpStatus.CREATED)
   public ClubResponse create(
-      @AuthenticationPrincipal UUID userId, @Valid @RequestBody CreateClubRequest request) {
-    return clubService.create(userId, request);
+      @AuthenticationPrincipal AuthenticatedUser user, @Valid @RequestBody CreateClubRequest request) {
+    return clubService.create(user.userId(), request);
   }
 
   @GetMapping
