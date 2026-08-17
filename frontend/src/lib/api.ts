@@ -178,3 +178,133 @@ export function addMember(
     body: JSON.stringify({ email, role }),
   })
 }
+
+export interface CompetitionResponse {
+  id: string
+  name: string
+  createdAt: string
+}
+
+export interface SeasonResponse {
+  id: string
+  label: string
+  competitionId: string
+  createdAt: string
+}
+
+export interface MatchResponse {
+  id: string
+  seasonId: string
+  homeTeamId: string
+  awayTeamId: string
+  status: string
+  kickoffAt: string
+  homeScore: number
+  awayScore: number
+  createdAt: string
+}
+
+export interface MatchEventResponse {
+  id: string
+  matchId: string
+  type: string
+  minute: number
+  playerId: string
+  teamId: string
+  createdAt: string
+}
+
+export function listCompetitions(accessToken: string): Promise<CompetitionResponse[]> {
+  return request<CompetitionResponse[]>('/api/v1/competitions', { headers: authHeaders(accessToken) })
+}
+
+export function createCompetition(accessToken: string, name: string): Promise<CompetitionResponse> {
+  return request<CompetitionResponse>('/api/v1/competitions', {
+    method: 'POST',
+    headers: authHeaders(accessToken),
+    body: JSON.stringify({ name }),
+  })
+}
+
+export function listSeasons(accessToken: string, competitionId: string): Promise<SeasonResponse[]> {
+  return request<SeasonResponse[]>(`/api/v1/competitions/${competitionId}/seasons`, {
+    headers: authHeaders(accessToken),
+  })
+}
+
+export function createSeason(
+  accessToken: string,
+  competitionId: string,
+  label: string,
+): Promise<SeasonResponse> {
+  return request<SeasonResponse>(`/api/v1/competitions/${competitionId}/seasons`, {
+    method: 'POST',
+    headers: authHeaders(accessToken),
+    body: JSON.stringify({ label }),
+  })
+}
+
+export function listMatches(accessToken: string): Promise<MatchResponse[]> {
+  return request<MatchResponse[]>('/api/v1/matches', { headers: authHeaders(accessToken) })
+}
+
+export function getMatch(accessToken: string, matchId: string): Promise<MatchResponse> {
+  return request<MatchResponse>(`/api/v1/matches/${matchId}`, { headers: authHeaders(accessToken) })
+}
+
+export function createMatch(
+  accessToken: string,
+  seasonId: string,
+  homeTeamId: string,
+  awayTeamId: string,
+  kickoffAt: string,
+): Promise<MatchResponse> {
+  return request<MatchResponse>('/api/v1/matches', {
+    method: 'POST',
+    headers: authHeaders(accessToken),
+    body: JSON.stringify({ seasonId, homeTeamId, awayTeamId, kickoffAt }),
+  })
+}
+
+function transitionMatch(accessToken: string, matchId: string, transition: string): Promise<MatchResponse> {
+  return request<MatchResponse>(`/api/v1/matches/${matchId}/${transition}`, {
+    method: 'POST',
+    headers: authHeaders(accessToken),
+  })
+}
+
+export function startMatch(accessToken: string, matchId: string): Promise<MatchResponse> {
+  return transitionMatch(accessToken, matchId, 'start')
+}
+
+export function halfTimeMatch(accessToken: string, matchId: string): Promise<MatchResponse> {
+  return transitionMatch(accessToken, matchId, 'half-time')
+}
+
+export function resumeMatch(accessToken: string, matchId: string): Promise<MatchResponse> {
+  return transitionMatch(accessToken, matchId, 'resume')
+}
+
+export function finishMatch(accessToken: string, matchId: string): Promise<MatchResponse> {
+  return transitionMatch(accessToken, matchId, 'finish')
+}
+
+export function listMatchEvents(accessToken: string, matchId: string): Promise<MatchEventResponse[]> {
+  return request<MatchEventResponse[]>(`/api/v1/matches/${matchId}/events`, {
+    headers: authHeaders(accessToken),
+  })
+}
+
+export function addMatchEvent(
+  accessToken: string,
+  matchId: string,
+  type: string,
+  minute: number,
+  playerId: string,
+): Promise<MatchEventResponse> {
+  return request<MatchEventResponse>(`/api/v1/matches/${matchId}/events`, {
+    method: 'POST',
+    headers: authHeaders(accessToken),
+    body: JSON.stringify({ type, minute, playerId }),
+  })
+}
