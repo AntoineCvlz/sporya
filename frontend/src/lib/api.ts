@@ -308,3 +308,37 @@ export function addMatchEvent(
     body: JSON.stringify({ type, minute, playerId }),
   })
 }
+
+export interface PlayerStatsResponse {
+  playerId: string
+  goals: number
+  yellowCards: number
+  redCards: number
+  matchesPlayed: number
+}
+
+export interface RecentMatchResult {
+  matchId: string
+  result: string
+  opponentTeamId: string
+  homeScore: number
+  awayScore: number
+  kickoffAt: string
+}
+
+export interface TeamFormResponse {
+  teamId: string
+  recentResults: RecentMatchResult[]
+}
+
+export function getPlayerStats(accessToken: string, playerId: string): Promise<PlayerStatsResponse> {
+  return request<PlayerStatsResponse>(`/api/v1/players/${playerId}/stats`, {
+    headers: authHeaders(accessToken),
+  })
+}
+
+export function getTeamForm(accessToken: string, teamId: string): Promise<TeamFormResponse> {
+  return request<TeamFormResponse>(`/api/v1/teams/${teamId}/form`, {
+    headers: authHeaders(accessToken),
+  })
+}
