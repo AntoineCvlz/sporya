@@ -769,6 +769,8 @@ public class MatchService {
 
 - [ ] **Step 9: Implement `MatchFinishedListener`**
 
+Note: `@TransactionalEventListener(phase = AFTER_COMMIT)` alone is not enough — empirically, `save()` calls inside the listener returned generated IDs but never actually reached the database (a follow-up `count()` inside the same method returned 0 immediately after `save()`). The listener method also needs its own explicit `@Transactional(propagation = Propagation.REQUIRES_NEW)`: by the AFTER_COMMIT phase the original transaction's resources are already torn down, and without `REQUIRES_NEW` the repository's own default transaction handling doesn't reliably open a fresh one. Both annotations are required together.
+
 `backend/api/src/main/java/com/sporya/statistics/application/MatchFinishedListener.java`:
 ```java
 package com.sporya.statistics.application;
@@ -787,6 +789,8 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
@@ -807,6 +811,7 @@ public class MatchFinishedListener {
   }
 
   @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+  @Transactional(propagation = Propagation.REQUIRES_NEW)
   public void onMatchFinished(MatchFinishedEvent event) {
     List<MatchEventResponse> events = matchEventService.listForMatch(event.matchId());
 

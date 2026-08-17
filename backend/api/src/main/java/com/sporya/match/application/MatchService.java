@@ -11,6 +11,7 @@ import com.sporya.match.domain.InvalidMatchStateException;
 import com.sporya.match.domain.Match;
 import com.sporya.match.domain.MatchAccessDeniedException;
 import com.sporya.match.domain.MatchEventType;
+import com.sporya.match.domain.MatchFinishedEvent;
 import com.sporya.match.domain.MatchNotFoundException;
 import com.sporya.match.domain.MatchResult;
 import com.sporya.match.domain.MatchStatus;
@@ -20,6 +21,7 @@ import com.sporya.match.infrastructure.persistence.MatchRepository;
 import com.sporya.match.infrastructure.persistence.SeasonRepository;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,16 +33,19 @@ public class MatchService {
   private final SeasonRepository seasonRepository;
   private final MatchEventRepository matchEventRepository;
   private final TeamService teamService;
+  private final ApplicationEventPublisher eventPublisher;
 
   public MatchService(
       MatchRepository matchRepository,
       SeasonRepository seasonRepository,
       MatchEventRepository matchEventRepository,
-      TeamService teamService) {
+      TeamService teamService,
+      ApplicationEventPublisher eventPublisher) {
     this.matchRepository = matchRepository;
     this.seasonRepository = seasonRepository;
     this.matchEventRepository = matchEventRepository;
     this.teamService = teamService;
+    this.eventPublisher = eventPublisher;
   }
 
   @Transactional
@@ -114,7 +119,11 @@ public class MatchService {
           "Match must be LIVE to finish, was: " + match.getStatus());
     }
     match.setStatus(MatchStatus.FINISHED);
-    return toResponse(matchRepository.save(match));
+    Match saved = matchRepository.save(match);
+    eventPublisher.publishEvent(
+        new MatchFinishedEvent(
+            saved.getId(), saved.getHomeTeamId(), saved.getAwayTeamId(), saved.getSeasonId()));
+    return toResponse(saved);
   }
 
   Match findMatch(UUID matchId) {
