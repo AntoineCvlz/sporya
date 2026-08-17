@@ -36,7 +36,8 @@ class JwtAuthenticationFilter extends OncePerRequestFilter {
       try {
         Claims claims = jwtService.parseAndValidate(header.substring("Bearer ".length()));
         UUID userId = UUID.fromString(claims.getSubject());
-        AuthenticatedUser authenticatedUser = new AuthenticatedUser(userId, parseMemberships(claims));
+        AuthenticatedUser authenticatedUser =
+            new AuthenticatedUser(userId, parseMemberships(claims));
         var authentication =
             new UsernamePasswordAuthenticationToken(authenticatedUser, null, List.of());
         SecurityContextHolder.getContext().setAuthentication(authentication);

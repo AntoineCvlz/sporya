@@ -30,7 +30,8 @@ public class ClubController {
   @PostMapping
   @ResponseStatus(HttpStatus.CREATED)
   public ClubResponse create(
-      @AuthenticationPrincipal AuthenticatedUser user, @Valid @RequestBody CreateClubRequest request) {
+      @AuthenticationPrincipal AuthenticatedUser user,
+      @Valid @RequestBody CreateClubRequest request) {
     return clubService.create(user.userId(), request);
   }
 
