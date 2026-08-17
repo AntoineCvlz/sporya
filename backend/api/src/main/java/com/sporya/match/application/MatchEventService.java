@@ -6,6 +6,7 @@ import com.sporya.club.application.PlayerService;
 import com.sporya.club.application.TeamService;
 import com.sporya.match.controller.dto.CreateMatchEventRequest;
 import com.sporya.match.controller.dto.MatchEventResponse;
+import com.sporya.match.controller.dto.PlayerStatsResponse;
 import com.sporya.match.domain.InvalidMatchStateException;
 import com.sporya.match.domain.Match;
 import com.sporya.match.domain.MatchAccessDeniedException;
@@ -81,5 +82,15 @@ public class MatchEventService {
     return matchEventRepository.findByMatchIdOrderByMinuteAsc(matchId).stream()
         .map(MatchEventResponse::from)
         .toList();
+  }
+
+  @Transactional(readOnly = true)
+  public PlayerStatsResponse statsFor(UUID playerId) {
+    long goals = matchEventRepository.countByPlayerIdAndType(playerId, MatchEventType.GOAL_SCORED);
+    long yellowCards =
+        matchEventRepository.countByPlayerIdAndType(playerId, MatchEventType.YELLOW_CARD);
+    long redCards = matchEventRepository.countByPlayerIdAndType(playerId, MatchEventType.RED_CARD);
+    long matchesPlayed = matchEventRepository.countDistinctMatchesForPlayer(playerId);
+    return new PlayerStatsResponse(playerId, goals, yellowCards, redCards, matchesPlayed);
   }
 }

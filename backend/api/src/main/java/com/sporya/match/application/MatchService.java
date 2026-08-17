@@ -5,11 +5,14 @@ import com.sporya.auth.infrastructure.security.AuthenticatedUser;
 import com.sporya.club.application.TeamService;
 import com.sporya.match.controller.dto.CreateMatchRequest;
 import com.sporya.match.controller.dto.MatchResponse;
+import com.sporya.match.controller.dto.RecentMatchResult;
+import com.sporya.match.controller.dto.TeamFormResponse;
 import com.sporya.match.domain.InvalidMatchStateException;
 import com.sporya.match.domain.Match;
 import com.sporya.match.domain.MatchAccessDeniedException;
 import com.sporya.match.domain.MatchEventType;
 import com.sporya.match.domain.MatchNotFoundException;
+import com.sporya.match.domain.MatchResult;
 import com.sporya.match.domain.MatchStatus;
 import com.sporya.match.domain.SeasonNotFoundException;
 import com.sporya.match.infrastructure.persistence.MatchEventRepository;
@@ -17,6 +20,7 @@ import com.sporya.match.infrastructure.persistence.MatchRepository;
 import com.sporya.match.infrastructure.persistence.SeasonRepository;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -126,6 +130,39 @@ public class MatchService {
     if (!authorized) {
       throw new MatchAccessDeniedException("Not authorized to manage this match");
     }
+  }
+
+  @Transactional(readOnly = true)
+  public TeamFormResponse recentForm(UUID teamId) {
+    List<Match> matches =
+        matchRepository.findRecentByTeamAndStatus(
+            teamId, MatchStatus.FINISHED, PageRequest.of(0, 5));
+    List<RecentMatchResult> results =
+        matches.stream().map(match -> toRecentResult(teamId, match)).toList();
+    return new TeamFormResponse(teamId, results);
+  }
+
+  private RecentMatchResult toRecentResult(UUID teamId, Match match) {
+    int homeScore =
+        (int)
+            matchEventRepository.countByMatchIdAndTeamIdAndType(
+                match.getId(), match.getHomeTeamId(), MatchEventType.GOAL_SCORED);
+    int awayScore =
+        (int)
+            matchEventRepository.countByMatchIdAndTeamIdAndType(
+                match.getId(), match.getAwayTeamId(), MatchEventType.GOAL_SCORED);
+    UUID opponentTeamId =
+        match.getHomeTeamId().equals(teamId) ? match.getAwayTeamId() : match.getHomeTeamId();
+    MatchResult result;
+    if (homeScore == awayScore) {
+      result = MatchResult.DRAW;
+    } else {
+      boolean teamIsHome = match.getHomeTeamId().equals(teamId);
+      boolean homeWon = homeScore > awayScore;
+      result = teamIsHome == homeWon ? MatchResult.WIN : MatchResult.LOSS;
+    }
+    return new RecentMatchResult(
+        match.getId(), result, opponentTeamId, homeScore, awayScore, match.getKickoffAt());
   }
 
   private MatchResponse toResponse(Match match) {

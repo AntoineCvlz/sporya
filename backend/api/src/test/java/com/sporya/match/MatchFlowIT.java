@@ -18,8 +18,11 @@ import com.sporya.match.controller.dto.CreateMatchRequest;
 import com.sporya.match.controller.dto.CreateSeasonRequest;
 import com.sporya.match.controller.dto.MatchEventResponse;
 import com.sporya.match.controller.dto.MatchResponse;
+import com.sporya.match.controller.dto.PlayerStatsResponse;
 import com.sporya.match.controller.dto.SeasonResponse;
+import com.sporya.match.controller.dto.TeamFormResponse;
 import com.sporya.match.domain.MatchEventType;
+import com.sporya.match.domain.MatchResult;
 import com.sporya.match.domain.MatchStatus;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -483,5 +486,99 @@ class MatchFlowIT {
     assertThat(getResponse.getBody()).isNotNull();
     assertThat(getResponse.getBody().homeScore()).isEqualTo(2);
     assertThat(getResponse.getBody().awayScore()).isEqualTo(1);
+  }
+
+  @Test
+  void playerStatsReflectGoalsCardsAndMatchesPlayed() {
+    String email = "staff+" + System.nanoTime() + "@sporya.test";
+    String password = "correct-horse-battery";
+    String accessToken = register(email, password);
+    UUID competitionId = createCompetition(accessToken);
+    UUID seasonId = createSeason(accessToken, competitionId);
+    UUID homeClubId = createClub(accessToken);
+    UUID homeTeamId = createTeam(accessToken, homeClubId);
+    accessToken = login(email, password);
+    UUID homePlayerId = createPlayer(accessToken, homeTeamId);
+    UUID awayClubId = createClub(accessToken);
+    UUID awayTeamId = createTeam(accessToken, awayClubId);
+    UUID matchId = createMatch(accessToken, seasonId, homeTeamId, awayTeamId);
+    transition(accessToken, matchId, "start");
+
+    addEvent(accessToken, matchId, MatchEventType.GOAL_SCORED, 10, homePlayerId);
+    addEvent(accessToken, matchId, MatchEventType.GOAL_SCORED, 20, homePlayerId);
+    addEvent(accessToken, matchId, MatchEventType.YELLOW_CARD, 30, homePlayerId);
+
+    ResponseEntity<PlayerStatsResponse> response =
+        restTemplate.exchange(
+            "/api/v1/players/" + homePlayerId + "/stats",
+            HttpMethod.GET,
+            new HttpEntity<>(authHeaders(accessToken)),
+            PlayerStatsResponse.class);
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    assertThat(response.getBody()).isNotNull();
+    assertThat(response.getBody().goals()).isEqualTo(2);
+    assertThat(response.getBody().yellowCards()).isEqualTo(1);
+    assertThat(response.getBody().redCards()).isEqualTo(0);
+    assertThat(response.getBody().matchesPlayed()).isEqualTo(1);
+  }
+
+  @Test
+  void teamFormReflectsRecentResults() {
+    String email = "staff+" + System.nanoTime() + "@sporya.test";
+    String password = "correct-horse-battery";
+    String accessToken = register(email, password);
+    UUID competitionId = createCompetition(accessToken);
+    UUID seasonId = createSeason(accessToken, competitionId);
+    UUID homeClubId = createClub(accessToken);
+    UUID homeTeamId = createTeam(accessToken, homeClubId);
+    accessToken = login(email, password);
+    UUID homePlayerId = createPlayer(accessToken, homeTeamId);
+    UUID awayClubId = createClub(accessToken);
+    UUID awayTeamId = createTeam(accessToken, awayClubId);
+    UUID awayPlayerId = createPlayer(accessToken, awayTeamId);
+
+    UUID winMatchId = createMatch(accessToken, seasonId, homeTeamId, awayTeamId);
+    transition(accessToken, winMatchId, "start");
+    addEvent(accessToken, winMatchId, MatchEventType.GOAL_SCORED, 10, homePlayerId);
+    addEvent(accessToken, winMatchId, MatchEventType.GOAL_SCORED, 20, homePlayerId);
+    transition(accessToken, winMatchId, "finish");
+
+    UUID drawMatchId = createMatch(accessToken, seasonId, homeTeamId, awayTeamId);
+    transition(accessToken, drawMatchId, "start");
+    addEvent(accessToken, drawMatchId, MatchEventType.GOAL_SCORED, 10, homePlayerId);
+    addEvent(accessToken, drawMatchId, MatchEventType.GOAL_SCORED, 20, awayPlayerId);
+    transition(accessToken, drawMatchId, "finish");
+
+    ResponseEntity<TeamFormResponse> homeFormResponse =
+        restTemplate.exchange(
+            "/api/v1/teams/" + homeTeamId + "/form",
+            HttpMethod.GET,
+            new HttpEntity<>(authHeaders(accessToken)),
+            TeamFormResponse.class);
+    assertThat(homeFormResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+    assertThat(homeFormResponse.getBody()).isNotNull();
+    assertThat(homeFormResponse.getBody().recentResults())
+        .filteredOn(r -> r.matchId().equals(winMatchId))
+        .hasSize(1)
+        .first()
+        .satisfies(r -> assertThat(r.result()).isEqualTo(MatchResult.WIN));
+    assertThat(homeFormResponse.getBody().recentResults())
+        .filteredOn(r -> r.matchId().equals(drawMatchId))
+        .hasSize(1)
+        .first()
+        .satisfies(r -> assertThat(r.result()).isEqualTo(MatchResult.DRAW));
+
+    ResponseEntity<TeamFormResponse> awayFormResponse =
+        restTemplate.exchange(
+            "/api/v1/teams/" + awayTeamId + "/form",
+            HttpMethod.GET,
+            new HttpEntity<>(authHeaders(accessToken)),
+            TeamFormResponse.class);
+    assertThat(awayFormResponse.getBody()).isNotNull();
+    assertThat(awayFormResponse.getBody().recentResults())
+        .filteredOn(r -> r.matchId().equals(winMatchId))
+        .hasSize(1)
+        .first()
+        .satisfies(r -> assertThat(r.result()).isEqualTo(MatchResult.LOSS));
   }
 }
