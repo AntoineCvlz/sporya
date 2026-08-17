@@ -152,3 +152,29 @@ export function createPlayer(
     body: JSON.stringify({ name, birthdate, position }),
   })
 }
+
+export interface MemberResponse {
+  userId: string
+  email: string
+  role: string
+  createdAt: string
+}
+
+export function listMembers(accessToken: string, clubId: string): Promise<MemberResponse[]> {
+  return request<MemberResponse[]>(`/api/v1/clubs/${clubId}/members`, {
+    headers: authHeaders(accessToken),
+  })
+}
+
+export function addMember(
+  accessToken: string,
+  clubId: string,
+  email: string,
+  role: string,
+): Promise<MemberResponse> {
+  return request<MemberResponse>(`/api/v1/clubs/${clubId}/members`, {
+    method: 'POST',
+    headers: authHeaders(accessToken),
+    body: JSON.stringify({ email, role }),
+  })
+}

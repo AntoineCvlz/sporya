@@ -2,18 +2,22 @@ import { useState, type FormEvent } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
-import { createTeam, getClub, listTeams } from '@/lib/api'
+import { addMember, createTeam, getClub, listMembers, listTeams } from '@/lib/api'
 import { useAuth } from '@/lib/auth-context'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
+const ROLES = ['ADMIN', 'COACH', 'ANALYST', 'PLAYER', 'VIEWER'] as const
+
 export function ClubDetailPage() {
   const { clubId } = useParams<{ clubId: string }>()
   const { accessToken } = useAuth()
   const queryClient = useQueryClient()
   const [name, setName] = useState('')
+  const [memberEmail, setMemberEmail] = useState('')
+  const [memberRole, setMemberRole] = useState<string>(ROLES[1])
 
   const clubQuery = useQuery({
     queryKey: ['club', clubId],
@@ -27,6 +31,12 @@ export function ClubDetailPage() {
     enabled: Boolean(accessToken && clubId),
   })
 
+  const membersQuery = useQuery({
+    queryKey: ['members', clubId],
+    queryFn: () => listMembers(accessToken as string, clubId as string),
+    enabled: Boolean(accessToken && clubId),
+  })
+
   const createMutation = useMutation({
     mutationFn: () => createTeam(accessToken as string, clubId as string, name),
     onSuccess: () => {
@@ -35,9 +45,22 @@ export function ClubDetailPage() {
     },
   })
 
+  const addMemberMutation = useMutation({
+    mutationFn: () => addMember(accessToken as string, clubId as string, memberEmail, memberRole),
+    onSuccess: () => {
+      setMemberEmail('')
+      queryClient.invalidateQueries({ queryKey: ['members', clubId] })
+    },
+  })
+
   function handleSubmit(event: FormEvent) {
     event.preventDefault()
     createMutation.mutate()
+  }
+
+  function handleAddMember(event: FormEvent) {
+    event.preventDefault()
+    addMemberMutation.mutate()
   }
 
   return (
@@ -85,6 +108,65 @@ export function ClubDetailPage() {
             </div>
             <Button type="submit" disabled={createMutation.isPending}>
               {createMutation.isPending ? 'Création…' : 'Créer'}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Membres</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-2">
+          {membersQuery.isLoading && <p className="text-sm text-muted-foreground">Chargement…</p>}
+          {membersQuery.data?.length === 0 && (
+            <p className="text-sm text-muted-foreground">Aucun membre pour l'instant.</p>
+          )}
+          {membersQuery.data?.map((member) => (
+            <div
+              key={member.userId}
+              className="flex items-center justify-between rounded-md border border-border px-3 py-2 text-sm"
+            >
+              <span>{member.email}</span>
+              <span className="text-muted-foreground">{member.role}</span>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Ajouter un membre</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleAddMember} className="flex flex-col gap-4">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="member-email">Email</Label>
+              <Input
+                id="member-email"
+                type="email"
+                required
+                value={memberEmail}
+                onChange={(e) => setMemberEmail(e.target.value)}
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="member-role">Rôle</Label>
+              <select
+                id="member-role"
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                value={memberRole}
+                onChange={(e) => setMemberRole(e.target.value)}
+              >
+                {ROLES.map((role) => (
+                  <option key={role} value={role}>
+                    {role}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <Button type="submit" disabled={addMemberMutation.isPending}>
+              {addMemberMutation.isPending ? 'Ajout…' : 'Ajouter'}
             </Button>
           </form>
         </CardContent>
