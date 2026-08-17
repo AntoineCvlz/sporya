@@ -1,6 +1,7 @@
 package com.sporya.club.controller;
 
 import com.sporya.club.controller.dto.ErrorResponse;
+import com.sporya.club.domain.ClubAccessDeniedException;
 import com.sporya.club.domain.ClubNotFoundException;
 import com.sporya.club.domain.TeamNotFoundException;
 import java.util.stream.Collectors;
@@ -21,6 +22,11 @@ class ClubApiExceptionHandler {
   @ExceptionHandler(TeamNotFoundException.class)
   ResponseEntity<ErrorResponse> handleTeamNotFound(TeamNotFoundException ex) {
     return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorResponse(ex.getMessage()));
+  }
+
+  @ExceptionHandler(ClubAccessDeniedException.class)
+  ResponseEntity<ErrorResponse> handleClubAccessDenied(ClubAccessDeniedException ex) {
+    return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new ErrorResponse(ex.getMessage()));
   }
 
   @ExceptionHandler(MethodArgumentNotValidException.class)
