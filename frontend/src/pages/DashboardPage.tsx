@@ -40,6 +40,12 @@ export function DashboardPage() {
             </div>
           )}
           <Button asChild variant="secondary">
+            <Link to="/competitions">Voir les compétitions</Link>
+          </Button>
+          <Button asChild variant="secondary">
+            <Link to="/matches">Voir les matchs</Link>
+          </Button>
+          <Button asChild variant="secondary">
             <Link to="/clubs">Voir les clubs</Link>
           </Button>
           <Button variant="outline" onClick={handleLogout}>
