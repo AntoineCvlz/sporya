@@ -16,6 +16,7 @@ import com.sporya.match.controller.dto.CreateMatchRequest;
 import com.sporya.match.controller.dto.CreateSeasonRequest;
 import com.sporya.match.controller.dto.MatchResponse;
 import com.sporya.match.controller.dto.SeasonResponse;
+import com.sporya.notification.controller.dto.NotificationResponse;
 import com.sporya.notification.domain.Notification;
 import com.sporya.notification.infrastructure.persistence.NotificationRepository;
 import java.time.Instant;
@@ -29,6 +30,7 @@ import org.springframework.boot.testcontainers.service.connection.ServiceConnect
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
@@ -205,5 +207,89 @@ class NotificationFlowIT {
     createMatch(accessToken, seasonId, homeTeamId, awayTeamId);
 
     assertThat(notificationRepository.findByUserIdOrderByCreatedAtDesc(userId)).isEmpty();
+  }
+
+  @Test
+  void listingAndMarkingNotificationsRead() {
+    String homeEmail = "home+" + System.nanoTime() + "@sporya.test";
+    String homePassword = "correct-horse-battery";
+    String homeAccessToken = register(homeEmail, homePassword);
+    UUID competitionId = createCompetition(homeAccessToken);
+    UUID seasonId = createSeason(homeAccessToken, competitionId);
+    UUID homeClubId = createClub(homeAccessToken);
+    UUID homeTeamId = createTeam(homeAccessToken, homeClubId);
+    homeAccessToken = login(homeEmail, homePassword);
+    UUID awayClubId = createClub(homeAccessToken);
+    UUID awayTeamId = createTeam(homeAccessToken, awayClubId);
+
+    UUID matchId = createMatch(homeAccessToken, seasonId, homeTeamId, awayTeamId);
+    transition(homeAccessToken, matchId, "start");
+    transition(homeAccessToken, matchId, "finish");
+
+    ResponseEntity<NotificationResponse[]> listResponse =
+        restTemplate.exchange(
+            "/api/v1/notifications",
+            HttpMethod.GET,
+            new HttpEntity<>(authHeaders(homeAccessToken)),
+            NotificationResponse[].class);
+    assertThat(listResponse.getBody()).isNotNull();
+    assertThat(listResponse.getBody()).hasSize(1);
+    assertThat(listResponse.getBody()[0].read()).isFalse();
+    UUID notificationId = listResponse.getBody()[0].id();
+
+    ResponseEntity<NotificationResponse> markReadResponse =
+        restTemplate.exchange(
+            "/api/v1/notifications/" + notificationId + "/read",
+            HttpMethod.POST,
+            new HttpEntity<>(authHeaders(homeAccessToken)),
+            NotificationResponse.class);
+    assertThat(markReadResponse.getBody()).isNotNull();
+    assertThat(markReadResponse.getBody().read()).isTrue();
+
+    ResponseEntity<NotificationResponse[]> listAfterResponse =
+        restTemplate.exchange(
+            "/api/v1/notifications",
+            HttpMethod.GET,
+            new HttpEntity<>(authHeaders(homeAccessToken)),
+            NotificationResponse[].class);
+    assertThat(listAfterResponse.getBody()).isNotNull();
+    assertThat(listAfterResponse.getBody()[0].read()).isTrue();
+  }
+
+  @Test
+  void markingSomeoneElsesNotificationReturns404() {
+    String homeEmail = "home+" + System.nanoTime() + "@sporya.test";
+    String homePassword = "correct-horse-battery";
+    String homeAccessToken = register(homeEmail, homePassword);
+    UUID competitionId = createCompetition(homeAccessToken);
+    UUID seasonId = createSeason(homeAccessToken, competitionId);
+    UUID homeClubId = createClub(homeAccessToken);
+    UUID homeTeamId = createTeam(homeAccessToken, homeClubId);
+    homeAccessToken = login(homeEmail, homePassword);
+    UUID awayClubId = createClub(homeAccessToken);
+    UUID awayTeamId = createTeam(homeAccessToken, awayClubId);
+
+    UUID matchId = createMatch(homeAccessToken, seasonId, homeTeamId, awayTeamId);
+    transition(homeAccessToken, matchId, "start");
+    transition(homeAccessToken, matchId, "finish");
+
+    ResponseEntity<NotificationResponse[]> listResponse =
+        restTemplate.exchange(
+            "/api/v1/notifications",
+            HttpMethod.GET,
+            new HttpEntity<>(authHeaders(homeAccessToken)),
+            NotificationResponse[].class);
+    UUID notificationId = listResponse.getBody()[0].id();
+
+    String outsiderAccessToken =
+        register("outsider+" + System.nanoTime() + "@sporya.test", "correct-horse-battery");
+
+    ResponseEntity<Void> response =
+        restTemplate.exchange(
+            "/api/v1/notifications/" + notificationId + "/read",
+            HttpMethod.POST,
+            new HttpEntity<>(authHeaders(outsiderAccessToken)),
+            Void.class);
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
   }
 }
